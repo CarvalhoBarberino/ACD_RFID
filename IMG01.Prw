@@ -14,26 +14,14 @@ User Function IMG01()
 
 	LOCAL _nIdx     := 0 as integer
 	LOCAL _nCop     := 0 as integer
-	LOCAL _nLog     := 0 as integer
-	LOCAL _nTip     := 0 as integer
 	LOCAL _cFont    := '020,020' as character
 	LOCAL _cFont1   := '030,030' as character
 	LOCAL _cFont2   := '050,050' as character
 
-	LOCAL _lA4      := .T. as logical
-	LOCAL _aImpTip  := &( SuperGetMV("MV_XFORMA4",,{{"010101","T"},{"080101","A"}}) ) as array
-	LOCAL _aLogEti  := &( SuperGetMV("MV_XLOGETI",,{{"010101","F"},{"080101","R"}}) ) as array
+	LOCAL _lA4      := .T. as logical // marca se será folha A4
 
 	DEFAULT COPCSEL := ""
 
-	_nLog := aScan( _aLogEti, { |x| x[1] == cFilAnt })  /* Verifica o logotipo a ser utilizado */
-	_nTip := aScan( _aImpTip, { |x| x[1] == cFilAnt })
-
-	If _nTip <> 0
-
-		_lA4  := If( _aImpTip[ _nTip ][ 2 ] == "A", .T., .F. ) /* Verifica o tipo da impressora para formulário A4 Forest */
-
-	End
 
 	_nIdx := If( type('ParamIxb') = 'A',  val(Paramixb[ 5 ]), 0 )
 
@@ -53,41 +41,20 @@ User Function IMG01()
 					MSCBChkStatus( .F. )
 					MSCBBegin(1,6,50,.F.) /* Inicio da Imagem da Etiqueta */
 
-					If _aLogEti[ _nLog ][ 2 ] == 'F'
-
-						MSCBLoadGRF("FORESTPA.PCX")    /* carrega imagem transferida para a memória da impressora */
-						MSCBGrafic(25,000, "FORESTPA") /* impressão da imagem */
-
-						If SB1->B1_XFSC = "1"
-
-							MSCBLoadGRF("MISTOFOR.PCX")    /* carrega imagem transferida para a memória da impressora */
-							MSCBGrafic(83,001, "MISTOFOR") /* impressão da imagem */
-
-						End
-
-					Else
-
-						MSCBLoadGRF("REVITAAM.PCX")    /* carrega imagem transferida para a memória da impressora */
-						MSCBGrafic(25,000, "REVITAAM") /* impressão da imagem */
-
-						If SB1->B1_XFSC = "1"
-
-							MSCBLoadGRF("MISTOREV.PCX")    /* carrega imagem transferida para a memória da impressora */
-							MSCBGrafic(83,001, "MISTOREV") /* impressão da imagem */
-
-						End
-
-					End
+					MSCBLoadGRF("FORESTPA.PCX")    /* carrega imagem transferida para a memória da impressora */
+					MSCBGrafic(25,000, "FORESTPA") /* impressão da imagem */
 
 					MSCBSay(005, 010, "Produto: " + rtrim(SB1->B1_DESC) ,'N','0',_cFont, .F.) /* Produto */
 					MSCBSay(005, 013, "Lote: " + rtrim(Paramixb[ 7 ]) ,'N','0',_cFont, .F.) /* Produto */
 					MSCBSAYBAR(005,016,Paramixb[ 7 ],'N','MB07',8,.F.,.F.,,'B',2.3,2)
-					MSCBSay(005, 026, "g/m2: " + lTrim(TransForm(SB1->B1_XGRAMA,"@E 9999"/*PesqPict("SB1","B1_XGRAMA")*/)) ,'N','0',_cFont, .F.) /* g/m2 */
-					MSCBSay(020, 026, "Largura x Comprimento: "+ lTrim(TransForm(SB1->B1_XLARG ,"@E 9999"/*PesqPict("SB1","B1_XLARG")*/))+ ' x ' + ltrim(TransForm(SB1->B1_XALT ,"@E 9999"/*PesqPict("SB1","B1_XALT")*/)) ,'N','0',_cFont, .F.) /* Largura x Comprimento */
+					/*
+					MSCBSay(005, 026, "g/m2: " + lTrim(TransForm(SB1->B1_XGRAMA,"@E 9999")) ,'N','0',_cFont, .F.) // g/m2
+					MSCBSay(020, 026, "Largura x Comprimento: "+ lTrim(TransForm(SB1->B1_XLARG ,"@E 9999"))+ ' x ' + ltrim(TransForm(SB1->B1_XALT ,"@E 9999")) ,'N','0',_cFont, .F.) // Largura x Comprimento
 					MSCBSay(005, 029, "FIBRA: "    + lTrim(TransForm(SB1->B1_XFIBRA ,PesqPict("SB1","B1_XFIBRA")))  ,'N','0',_cFont, .F.)  // Fibra
 					MSCBSay(033, 029, "DIAMETRO: " + lTrim(TransForm(SB1->B1_XDIAMET,PesqPict("SB1","B1_XDIAMET"))) ,'N','0',_cFont, .F.)  // Diâmetro
 					MSCBSay(055, 029, "TUBETE: "   + lTrim(TransForm(SB1->B1_XTUBETE,PesqPict("SB1","B1_XTUBETE"))) ,'N','0',_cFont, .F.)  // Tubete
-					MSCBSay(005, 032, "QTD. FOLHAS : "+lTrim(TransForm(SB1->B1_XFOL,PesqPict("SB1","B1_XFOL"))) ,'N','0',_cFont, .F.)  /* Qtd. Folhas */
+					MSCBSay(005, 032, "QTD. FOLHAS : "+lTrim(TransForm(SB1->B1_XFOL,PesqPict("SB1","B1_XFOL"))) ,'N','0',_cFont, .F.)  // Qtd. Folhas
+					*/
 					MSCBSay(033, 032, "PESO LÍQ.(t): "+lTrim(TransForm(SB1->B1_PESO,PesqPict("SB1","B1_PESO"))) ,'N','0',_cFont, .F.) /* Peso Liq.*/
 					MSCBSay(055, 032, "PESO BRUTO (t): "+lTrim(TransForm(SB1->B1_PESO,PesqPict("SB1","B1_PESO"))) ,'N','0',_cFont, .F.) /* Peso Bruto */
 
@@ -122,31 +89,10 @@ User Function IMG01()
 
 				MSCBSay(005,010, 'Código Produto: ' + rtrim(SB1->B1_COD)  ,'N','0',_cFont, .F.)
 
-				If _aLogEti[ _nLog ][ 2 ] == 'F'
 
-					MSCBLoadGRF("FORESTPA.PCX")    /* carrega imagem transferida para a memória da impressora */
-					MSCBGrafic(25,000, "FORESTPA") /* impressão da imagem */
 
-					If SB1->B1_XFSC == "1"
-
-						MSCBLoadGRF("MISTOFOR.PCX")    /* carrega imagem transferida para a memória da impressora */
-						MSCBGrafic(83,001, "MISTOFOR") /* impressão da imagem */
-
-					End
-
-				Else
-
-					MSCBLoadGRF("REVITAAM.PCX")    /* carrega imagem transferida para a memória da impressora */
-					MSCBGrafic(25,000, "REVITAAM") /* impressão da imagem */
-
-					If SB1->B1_XFSC == "1"
-
-						MSCBLoadGRF("MISTOREV.PCX")    /* carrega imagem transferida para a memória da impressora */
-						MSCBGrafic(83,001, "MISTOREV") /* impressão da imagem */
-
-					End
-
-				End
+				MSCBLoadGRF("FORESTPA.PCX")    /* carrega imagem transferida para a memória da impressora */
+				MSCBGrafic(25,000, "FORESTPA") /* impressão da imagem */
 
 				MSCBSay(005,013, 'Código Lote: ' + SC2->C2_NUM + SC2->C2_ITEM + SC2->C2_SEQUEN + if( ! empty(SC2->C2_OBS),"    ID Bobina: " + rTrim(SC2->C2_OBS), ""),'N','0',_cFont, .F.)
 				MSCBSAYBAR(005,016,SC2->C2_NUM + SC2->C2_ITEM + SC2->C2_SEQUEN,'N','MB07',8,.F.,.F.,,'B',2.3,2)
@@ -190,17 +136,8 @@ User Function IMG01()
 					MSCBChkStatus( .F. )
 					MSCBBegin(1,6,50,.F.) /* Inicio da Imagem da Etiqueta */
 
-					If _aLogEti[ _nLog ][ 2 ] == 'F'
-
-						MSCBLoadGRF("FORESTPA.PCX")    /* carrega imagem transferida para a memória da impressora */
-						MSCBGrafic(60,000,"FORESTPA") /* impressão da imagem */
-
-					Else
-
-						MSCBLoadGRF("REVITAAM.PCX")    /* carrega imagem transferida para a memória da impressora */
-						MSCBGrafic(60,000,"REVITAAM") /* impressão da imagem */
-
-					End
+					MSCBLoadGRF("FORESTPA.PCX")    /* carrega imagem transferida para a memória da impressora */
+					MSCBGrafic(60,000,"FORESTPA") /* impressão da imagem */
 
 					MSCBSay(004,008, 'Código do Produto: ' + rtrim(SB1->B1_COD)  ,"N","0",_cFont1,.F.)
 					MSCBSay(004,011, 'Código Lote: ' + Paramixb[ 7 ] ,'N','0',_cFont1, .F.)
@@ -319,13 +256,15 @@ Static Function ImprA4()
 	//oPrint:Say( 1450, 950, lTrim(TransForm(SB1->B1_XGRAMA,"@E 9999"/*PesqPict("SB1","B1_XGRAMA")*/)) , oFont18) /* g/m2 */
 	//oPrint:Say( 1450,1550, lTrim(TransForm(SB1->B1_XLARG ,"@E 9999"/*PesqPict("SB1","B1_XLARG")*/))+ ' x ' + ltrim(TransForm(SB1->B1_XALT ,"@E 9999"/*PesqPict("SB1","B1_XALT")*/)), oFont18) /* Largura x Comprimento */
 
+	/*
 	oPrint:Say( 1830, 350, lTrim(TransForm(SB1->B1_XFIBRA ,PesqPict("SB1","B1_XFIBRA"))) , oFont18)  // Fibra
 	oPrint:Say( 1830, 980, lTrim(TransForm(SB1->B1_XDIAMET,PesqPict("SB1","B1_XDIAMET"))), oFont18)  // Diâmetro
 	oPrint:Say( 1830,1730, lTrim(TransForm(SB1->B1_XTUBETE,PesqPict("SB1","B1_XTUBETE"))), oFont18)  // Tubete
+	*/
 
 	If COPCSEL <> 'Nota Fiscal'
 
-		oPrint:Say(2310, 350, lTrim(TransForm(SB1->B1_XFOL,"@E 9999"/*PesqPict("SB1","B1_XFOL")*/)), oFont18)  /* Qtd. Folhas */
+		//oPrint:Say(2310, 350, lTrim(TransForm(SB1->B1_XFOL,"@E 9999"/*PesqPict("SB1","B1_XFOL")*/)), oFont18)  /* Qtd. Folhas */
 		oPrint:Say(2310, 980, lTrim(TransForm(SB1->B1_PESO,PesqPict("SB1","B1_PESO"))), oFont18) /* Peso Liq.*/
 
 	End

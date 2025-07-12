@@ -86,7 +86,7 @@ User Function UACDI011(nOrigem,aParIni)
 		Space(Tamsx3("C5_NUM")[1]),;
 		Space(3),;
 		0}}
-	PRIVATE aSvPar	:= {}
+	PRIVATE aSvPar	:= {} // mais tarde será usado pra fazer um array assim: {MV_PAR01, MV_PAR02, MV_PAR03, ... , MV_PAR39, MV_PAR40}
 	PRIVATE cOpcSel	:= ""  // variavel disponivel para infomar a opcao de origem selecionada
 	PRIVATE cOriPalLang := ""
 	PRIVATE aTitle := {" ",;
@@ -97,7 +97,7 @@ User Function UACDI011(nOrigem,aParIni)
 		"Armazem",;
 		"Lote",;
 		"Endereço",;
-		"Pedido/ID Bobina",;
+		"Num-Serie",;
 		"Origem",;
 		"Id"} as Array
 	PRIVATE _lCopia := .F.
@@ -333,7 +333,7 @@ Static Function AWzVPR()
 	While ! SBF->( Eof() )
 
 		SB1->( MSSeek( xFilial("SB1")+SBF->BF_PRODUTO, .F.))
-		aAdd(aLbx,{.f.,SB1->B1_COD, SB1->B1_DESC, Str(SBF->BF_QUANT,nT,nD),Str(nQtdEti,nT,nD),SBF->BF_LOCAL,SBF->BF_LOTECTL,SBF->BF_LOCALIZ," ","SBF",SBF->(Recno())})
+		aAdd(aLbx,{.f.,SB1->B1_COD, SB1->B1_DESC, Str(SBF->BF_QUANT,nT,nD),Str(nQtdEti,nT,nD),SBF->BF_LOCAL,SBF->BF_LOTECTL,SBF->BF_LOCALIZ,SBF->BF_NUMSERI,"SBF",SBF->(Recno())}) // Juk falta trazer o numero de serie
 		SBF->( dbSkip() )
 
 	End
@@ -399,9 +399,9 @@ Static Function ListBoxMar(oDlg)
 	LOCAL oP
 	LOCAL lAlter := .T.
 
-/* " ","Produto","Descrição","Qtd.","Cópias","Armazem","Lote","Endereço","Pedido","Origem","Id" */
+/* " ","Produto","Descrição","Qtd.","Cópias","Armazem","Lote","Endereço", "Num-Serie","Origem","Id" */
 
-	@ 10,10 LISTBOX oLbx FIELDS HEADER aTitle[1], aTitle[2], aTitle[3],aTitle[4],aTitle[5],aTitle[6],aTitle[7],aTitle[8],aTitle[9],aTitle[10],aTitle[11]  SIZE 230,095 OF oDlg PIXEL ;
+	@ 10,10 LISTBOX oLbx FIELDS HEADER aTitle[1], aTitle[2], aTitle[3],aTitle[4],aTitle[5],aTitle[6],aTitle[7],aTitle[8],aTitle[9],aTitle[10],aTitle[11]  SIZE 230,095 OF oDlg PIXEL ; // Juk linha com titulos dos campos
 		ON dblClick(aLbx[oLbx:nAt,1] := !aLbx[oLbx:nAt,1])
 
 	oLbx:SetArray( aLbx )
@@ -667,7 +667,7 @@ Static Function VldaLbx()
 	aSvPar := {}
 
 	For nMv := 1 To 40
-		aAdd( aSvPar, &( "MV_PAR" + StrZero( nMv, 2, 0 ) ) )
+		aAdd( aSvPar, &( "MV_PAR" + StrZero( nMv, 2, 0 ) ) ) // monta um array assim: {MV_PAR01, MV_PAR02, MV_PAR03, ... , MV_PAR39, MV_PAR40}
 	Next nMv
 
 Return .t.
@@ -793,7 +793,7 @@ Static Function Imprime( cOrigem, cCodPt, aRetImp, nOrigem )
 			cLote	:= aLbx[nx,7]
 			cAliasOri := aLbx[nx,10]
 			nRecno    := aLbx[nx,11]
-
+			// Juk entrar aqui
 			( cAliasOri )->( dbGoto( nRecno ) ) //posiciona na tabela de origem da informação
 			SB1->( dbSeek( xFilial('SB1') + cProduto ) )
 
