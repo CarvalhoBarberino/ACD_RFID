@@ -199,7 +199,7 @@ Static Function ImprA4()
 	aLbx[ _nPnt ][ 1 ] := .F.
 	SB1->( MSSeek( FWxFilial('SB1') + Paramixb[ 2 ], .F.  ))
 
-	cNomeRel := rtrim( Paramixb[ 2 ] ) + if( ! empty(Paramixb[ 9 ]), rTrim(Paramixb[ 9 ]),"")
+	cNomeRel := rtrim( Paramixb[ 2 ] )
 	oPrint := FWMsPrinter():New( cNomeRel, IMP_PDF, .T.,,.F.) // Inicia o relatório
 
 	If type('oPrint:ofilewriter') <> "U"
@@ -270,7 +270,7 @@ Static Function ImprA4()
 	End
 
 	oPrint:Say(2310,1730, lTrim(TransForm(Val(ParamIxb[ 4 ]),PesqPict("SB1","B1_PESO")))+" "+SB1->B1_UM, oFont18) /* Peso Bruto */
-	oPrint:Say(2520,510, Space( 40 - len(if( ! empty(Paramixb[ 9 ]),"ID Bobina " + rTrim(Paramixb[ 9 ]), ""))) + if( ! empty(Paramixb[ 9 ]),"ID Bobina " + rTrim(Paramixb[ 9 ]), ""), oFont15n)
+	
 	oPrint:Say(2620,510, Space( 40 - len(rtrim(SB1->B1_COD))) + rtrim(SB1->B1_COD), oFont15n) /* Código do Produto */
 
 	oPrint:Code128(2635,510,SB1->B1_COD  , 0.73, 30, .F.)

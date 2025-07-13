@@ -82,8 +82,10 @@ User Function UACDI011(nOrigem,aParIni)
 		Space(10),;
 		Space(nTamArm),;
 		Space(nTamLote),;
+		Space(nTamSLote),;
+		Space(TamSX3("B8_DTVALID")[1]),;
 		Space(nTamEnder),;
-		Space(Tamsx3("C5_NUM")[1]),;
+		Space(Tamsx3("BF_NUMSERI")[1]),;
 		Space(3),;
 		0}}
 	PRIVATE aSvPar	:= {} // mais tarde será usado pra fazer um array assim: {MV_PAR01, MV_PAR02, MV_PAR03, ... , MV_PAR39, MV_PAR40}
@@ -96,6 +98,8 @@ User Function UACDI011(nOrigem,aParIni)
 		"Cópias",;
 		"Armazem",;
 		"Lote",;
+		"Sublote",;
+		"Validade",;
 		"Endereço",;
 		"Num-Serie",;
 		"Origem",;
@@ -333,13 +337,29 @@ Static Function AWzVPR()
 	While ! SBF->( Eof() )
 
 		SB1->( MSSeek( xFilial("SB1")+SBF->BF_PRODUTO, .F.))
-		aAdd(aLbx,{.f.,SB1->B1_COD, SB1->B1_DESC, Str(SBF->BF_QUANT,nT,nD),Str(nQtdEti,nT,nD),SBF->BF_LOCAL,SBF->BF_LOTECTL,SBF->BF_LOCALIZ,SBF->BF_NUMSERI,"SBF",SBF->(Recno())}) // Juk falta trazer o numero de serie
+		aAdd(aLbx,;
+		{.f.,; // 1
+		SB1->B1_COD,; // 2
+		SB1->B1_DESC,; // 3
+		Str(SBF->BF_QUANT,nT,nD),; // 4
+		Str(nQtdEti,nT,nD),; // 5
+		SBF->BF_LOCAL,; // 6
+		SBF->BF_LOTECTL,; // 7
+		SBF->BF_NUMLOTE,; // 8
+		posicione("SB8", 5, xFilial("SB8") + SBF->BF_PRODUTO + SBF->BF_LOTECTL + SBF->BF_NUMLOTE, "B8_DTVALID"),; // 9
+		SBF->BF_LOCALIZ,; // 10
+		SBF->BF_NUMSERI,; // 11
+		"SBF",; // 12
+		SBF->(Recno()); // 13
+		}) // Juk
 		SBF->( dbSkip() )
+
+		//MsgAlert(Dtoc(aLbx[len(aLbx)][9]), "BF_R_E_C_N_O_ " + cValToChar(aLbx[len(aLbx)][13]))
 
 	End
 
 	oLbx:SetArray( aLbx )
-	oLbx:bLine := {|| {Iif(aLbx[oLbx:nAt,1],oOk,oNo),aLbx[oLbx:nAt,2],aLbx[oLbx:nAt,3],aLbx[oLbx:nAt,4],aLbx[oLbx:nAt,5],aLbx[oLbx:nAt,6],aLbx[oLbx:nAt,7],aLbx[oLbx:nAt,8],aLbx[oLbx:nAt,9],aLbx[oLbx:nAt,10],aLbx[oLbx:nAt,11]}}
+	oLbx:bLine := {|| {Iif(aLbx[oLbx:nAt,1],oOk,oNo),aLbx[oLbx:nAt,2],aLbx[oLbx:nAt,3],aLbx[oLbx:nAt,4],aLbx[oLbx:nAt,5],aLbx[oLbx:nAt,6],aLbx[oLbx:nAt,7],aLbx[oLbx:nAt,8],aLbx[oLbx:nAt,9],aLbx[oLbx:nAt,10],aLbx[oLbx:nAt,11],aLbx[oLbx:nAt,12],aLbx[oLbx:nAt,13]}}
 	oLbx:Refresh()
 
 	SBF->( dbClearFilter() )
@@ -399,13 +419,12 @@ Static Function ListBoxMar(oDlg)
 	LOCAL oP
 	LOCAL lAlter := .T.
 
-/* " ","Produto","Descrição","Qtd.","Cópias","Armazem","Lote","Endereço", "Num-Serie","Origem","Id" */
+/* " ","Produto","Descrição","Qtd.","Cópias","Armazem","Lote","Vencimento","Endereço", "Num-Serie","Origem","Id" */
 
-	@ 10,10 LISTBOX oLbx FIELDS HEADER aTitle[1], aTitle[2], aTitle[3],aTitle[4],aTitle[5],aTitle[6],aTitle[7],aTitle[8],aTitle[9],aTitle[10],aTitle[11]  SIZE 230,095 OF oDlg PIXEL ; // Juk linha com titulos dos campos
-		ON dblClick(aLbx[oLbx:nAt,1] := !aLbx[oLbx:nAt,1])
+	@ 10,10 LISTBOX oLbx FIELDS HEADER aTitle[1], aTitle[2], aTitle[3],aTitle[4],aTitle[5],aTitle[6],aTitle[7],aTitle[8],aTitle[9],aTitle[10],aTitle[11],aTitle[12] SIZE 230,095 OF oDlg PIXEL ON dblClick(aLbx[oLbx:nAt,1] := !aLbx[oLbx:nAt,1]) // Juk linha com titulos dos campos
 
 	oLbx:SetArray( aLbx )
-	oLbx:bLine	:= {|| {Iif(aLbx[oLbx:nAt,1],oOk,oNo),aLbx[oLbx:nAt,3],aLbx[oLbx:nAt,4],aLbx[oLbx:nAt,4],aLbx[oLbx:nAt,5],aLbx[oLbx:nAt,6],aLbx[oLbx:nAt,7],aLbx[oLbx:nAt,8],aLbx[oLbx:nAt,9],aLbx[oLbx:nAt,10],aLbx[oLbx:nAt,11]}}
+	oLbx:bLine	:= {|| {Iif(aLbx[oLbx:nAt,1],oOk,oNo),aLbx[oLbx:nAt,3],aLbx[oLbx:nAt,4],aLbx[oLbx:nAt,4],aLbx[oLbx:nAt,5],aLbx[oLbx:nAt,6],aLbx[oLbx:nAt,7],aLbx[oLbx:nAt,8],aLbx[oLbx:nAt,9],aLbx[oLbx:nAt,10],aLbx[oLbx:nAt,11],aLbx[oLbx:nAt,12]}}
 	oLbx:align	:= CONTROL_ALIGN_ALLCLIENT
 
 	oP := TPanel():New( 028, 072, ,oDlg, , , , , , 120, 20, .F.,.T. )
@@ -678,14 +697,13 @@ Static Function Imprime( cOrigem, cCodPt, aRetImp, nOrigem )
 	LOCAL cProduto
 	LOCAL cLOCAL := Space(nTamArm)
 	LOCAL nQtde
-	LOCAL nQE
 	LOCAL nQVol
 	LOCAL nResto
 	LOCAL cAliasOri
 	LOCAL nRecno
 	LOCAL cLote  		:= Space(nTamlote)
 //LOCAL cSLote 		:= Space(nTamSlote)
-//LOCAL cNumSerie  	:= Space(nTamSerie)
+	LOCAL cNumSerie  	:= Space(nTamSerie)
 	LOCAL cEndereco  	:= Space(nTamEnder)
 //LOCAL dValid     	:= CTOD("  /  /  ")
 	LOCAL nMv
@@ -786,14 +804,20 @@ Static Function Imprime( cOrigem, cCodPt, aRetImp, nOrigem )
 				Loop
 			EndIf
 
-			nQE		:= val(aLbx[nx,4])
-			nResto	:= val(aLbx[nx,5])
-			nQVol 	:= val(aLbx[nx,4])
-			cLOCAL	:= aLbx[nx,6]
-			cLote	:= aLbx[nx,7]
-			cAliasOri := aLbx[nx,10]
-			nRecno    := aLbx[nx,11]
-			// Juk entrar aqui
+			nResto			:= val(aLbx[nx,5])
+			nQVol			:= val(aLbx[nx,4])
+			cLOCAL			:= aLbx[nx,6]
+			cLote			:= aLbx[nx,7]
+			cVencimento		:= aLbx[nx,9]
+			cEndereco		:= aLbx[nx,10]
+			cNumSerie		:= aLbx[nx,11]
+			cAliasOri		:= aLbx[nx,12]
+			nRecno			:= aLbx[nx,13]
+			// Juk inicio 121809
+			if Usacb0("01")
+				CBGrvEti('01', {cProduto, nQVol, '', '', '', '', '', '', cEndereco, cLOCAL, '', /* cNumSeq */, NIL, NIL, NIL, cLote, /* cSLote */, cVencimento, /* centro de custo*/, /* local De Origem */, NIL, /* OP Requisitante */, cNumserie, cAliasOri, /* Item da NF */})
+			endIf
+			// Juk fim 121809
 			( cAliasOri )->( dbGoto( nRecno ) ) //posiciona na tabela de origem da informação
 			SB1->( dbSeek( xFilial('SB1') + cProduto ) )
 
