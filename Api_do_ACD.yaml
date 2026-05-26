@@ -1,0 +1,511 @@
+# https://app.swaggerhub.com/apis/thiagovalerio_organi/SUENOLAR/1.0.0
+openapi: 3.0.0
+servers:
+  # Added by API Auto Mocking Plugin
+  - description: PROTHEUS
+    url: 'https://virtserver.swaggerhub.com/thiagovalerio_organi/SUENOLAR/1.0.0'
+  - url: 'https://virtserver.swaggerhub.com/thiagovalerio_organi/SUENOLAR/1.0.0'
+    description: SUENOLAR
+info:
+  description: API desenvolvida para promover integração entre o ERP TOTVS Protheus e o mIddleware a ser desenvolvido pela empresa SEGEL para o cliente SUENOLAR
+  version: 1.0.0
+  title: API SUEÑOLAR - PROTHEUS - SEGEL
+  contact:
+    email: thiago.valerio@nexsolucoes.com.br
+    name: Thiago Valerio
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+  termsOfService: ''
+tags:
+  - name: SEGEL
+    description: Lista de Endpoints a serem disponibilizados na SEGEL
+  - name: PROTHEUS
+    description: Lista de Endpoints a serem disponibilizados no PROTHEUS
+paths:
+  /production_order:
+    servers:
+      - url: 'https://virtserver.swaggerhub.com/thiagovalerio_organi/SUENOLAR/1.0.0'
+        description: SEGEL
+    post:
+      summary: SEGEL RECEBENDO ORDEM DE PRODUÇÃO
+      tags:
+        - SEGEL
+      responses:
+        '201':
+          description: Ordem de Produção Recebida
+        '400':
+          description: Falha no Recebimento da Oordem de Produção
+        '409':
+          description: Ordem de Produção já recebida anteriormente
+      operationId: post-production_order
+      description: 'Endpoint SEGEL dedicado a receber registro de Ordens de Produção do Protheus para desmembra-lo em registros de etiquetas necessárias para posterior envio destes ao Protheus paraos processos de apontamento de produção, expedição e logistica.'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filial:
+                  type: string
+                  x-stoplight:
+                    id: ixqaoqf4bw310
+                  example: '01'
+                op:
+                  type: string
+                  x-stoplight:
+                    id: wq689r3j4wcmf
+                  example: AABV8801001
+                cod_prod:
+                  type: string
+                  x-stoplight:
+                    id: aav1tl32ycjcv
+                  example: XXXXXX
+                descricao:
+                  type: string
+                  x-stoplight:
+                    id: fx2hsp22usuq8
+                  example: SUENOLAR SUPER DORMILAR  111 X 222
+                local:
+                  type: string
+                  x-stoplight:
+                    id: 346quy6b63iok
+                  example: '01'
+                lote:
+                  type: string
+                  x-stoplight:
+                    id: 2lfhyrov0w2ad
+                  example: AABV8801001
+                qtd:
+                  type: number
+                  x-stoplight:
+                    id: 6r2w4i67qrr53
+                  example: 10
+                familia:
+                  type: string
+                  x-stoplight:
+                    id: 4e0btp14sprmh
+                  example: ASP
+            examples:
+              Example 1:
+                value:
+                  filial: '01'
+                  op: AABV8801001
+                  cod_prod: XXXXXX
+                  descricao: SUENOLAR SUPER DORMILAR  111 X 222
+                  local: '01'
+                  lote: AABV8801001
+                  qtd: 10
+                  familia: ASP
+    parameters: []
+  /production_add:
+    parameters: []
+    post:
+      summary: PROTHEUS RECEBENDO APONTAMENTO DE PRODUÇÃO
+      tags:
+        - PROTHEUS
+      responses:
+        '201':
+          description: Apontamento Criado
+        '400':
+          description: Falha no Apontamento
+        '409':
+          description: Etiqueta e/ou Numero de série já registrado
+      operationId: post-production_add
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filial:
+                  type: string
+                  x-stoplight:
+                    id: hcfbz944kssl7
+                  example: '01'
+                op:
+                  type: string
+                  x-stoplight:
+                    id: d7b4v9dp0k1eo
+                  example: AABV8801001
+                cod_prod:
+                  type: string
+                  x-stoplight:
+                    id: uwmedt9kjqz40
+                  example: XXXXXX
+                descricao:
+                  type: string
+                  x-stoplight:
+                    id: xutf3gbiaygyt
+                  example: SUENOLAR SUPER DORMILAR  111 X 222
+                local:
+                  type: string
+                  x-stoplight:
+                    id: ojv4rrojjdwq3
+                  example: '01'
+                lote:
+                  type: string
+                  x-stoplight:
+                    id: zf37c95awpbli
+                  example: AABV8801001
+                qtd:
+                  type: number
+                  x-stoplight:
+                    id: 1dkuvec7nkbd9
+                  example: 1
+                serie:
+                  type: string
+                  x-stoplight:
+                    id: 0crllxeyohkyh
+                  example: ASP0469712
+                tags:
+                  type: array
+                  x-stoplight:
+                    id: f6ui4iwkra8s1
+                  default: ZZZZZZZZZZZZZZZ
+                  items:
+                    x-stoplight:
+                      id: ml3bm6k68t0fp
+                    type: object
+                    properties:
+                      tag:
+                        type: string
+                        x-stoplight:
+                          id: ojr6mkwobsajw
+                        example: ZZZZZZZZZZZZZZZ
+            examples:
+              Example 1:
+                value:
+                  filial: '01'
+                  op: AABV8801001
+                  cod_prod: XXXXXX
+                  descricao: SUENOLAR SUPER DORMILAR  111 X 222
+                  local: '01'
+                  lote: AABV8801001
+                  qtd: 1
+                  serie: ASP0469712
+                  tags: ZZZZZZZZZZZZZZZ
+      description: 'Endpoint Protheus dedicado a receber e registrar apontamentos de produção, endereçamento e gereação de registro e etiqueta automáticamente. Necessários para posterior processos de expedição e logistica.'
+    servers:
+      - url: 'https://virtserver.swaggerhub.com/thiagovalerio_organi/SUENOLAR/1.0.0'
+        description: PROTHEUS
+  /faturas_outbound:
+    post:
+      summary: SEGEL RECEBENDO FATURAS E ETIQUETAS LIDAS NA SEPARAÇÃO
+      tags:
+        - SEGEL
+      responses:
+        '201':
+          description: Faturas Recebida
+        '400':
+          description: Falha no recebimento das Faturas
+        '409':
+          description: Faturas já recebidas anteriormente
+      operationId: post-faturas_outbound
+      description: Endpoint SEGEL dedicado a receber registro de faturas/remissiones separadas e faturadas no Protheus para cruzamento das informações de etiquetas lidas durante o processo de separação e faturamento vs etiquetas identificadas durante o carregamento
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - facturas
+              properties:
+                facturas:
+                  type: array
+                  x-stoplight:
+                    id: ale5mfcdggb5d
+                  items:
+                    x-stoplight:
+                      id: nggcpvqn6ej03
+                    type: object
+                    required:
+                      - filial
+                      - fatura
+                      - cliente
+                      - nome_cli
+                      - itens
+                    properties:
+                      filial:
+                        type: string
+                        x-stoplight:
+                          id: kstk01svxq09a
+                        example: '01'
+                      fatura:
+                        type: string
+                        x-stoplight:
+                          id: y8ee04c6myx66
+                        example: '999999999'
+                      cliente:
+                        type: string
+                        x-stoplight:
+                          id: xr6ya8aunsc2t
+                        example: '666666'
+                      nome_cli:
+                        type: string
+                        x-stoplight:
+                          id: 3ssc2lf9x1ahl
+                        example: SUENOLAR
+                      itens:
+                        type: array
+                        x-stoplight:
+                          id: 1bxymwcvu61pm
+                        items:
+                          x-stoplight:
+                            id: rv6lhzx6as486
+                          type: object
+                          required:
+                            - item
+                            - pedido
+                            - ordsep
+                            - cod_prod
+                            - lote
+                            - numserie
+                            - qtd
+                            - tags
+                          properties:
+                            item:
+                              type: string
+                              x-stoplight:
+                                id: o1xxah3ta5a81
+                              example: '01'
+                            pedido:
+                              type: string
+                              x-stoplight:
+                                id: 88cqyny3jsqmq
+                              example: '666666'
+                            ordsep:
+                              type: string
+                              x-stoplight:
+                                id: ep8qni4nokivl
+                              example: '666666'
+                            cod_prod:
+                              type: string
+                              x-stoplight:
+                                id: 5pefkatiwmbx4
+                              example: XXXXXX
+                            lote:
+                              type: string
+                              x-stoplight:
+                                id: xpvod512k0jpx
+                              example: AABV8801001
+                            numserie:
+                              type: string
+                              x-stoplight:
+                                id: 121ut4f52zsqd
+                              example: ASP0469712
+                            qtd:
+                              type: number
+                              x-stoplight:
+                                id: txi835do074gd
+                              example: 1
+                            tags:
+                              type: array
+                              x-stoplight:
+                                id: 8cdjin5krwoh5
+                              example: ZZZZZZZZZZZZZZZ
+                              items:
+                                x-stoplight:
+                                  id: 7rtrv4tbbcvkl
+                                type: object
+                                example: ZZZZZZZZZZZZZZZ
+                                required:
+                                  - tags
+                                properties:
+                                  tags:
+                                    type: string
+                                    x-stoplight:
+                                      id: 3mimmr6t26nv6
+                                    example: ZZZZZZZZZZZZZZZ
+            examples:
+              Example 1:
+                value:
+                  facturas:
+                    - filial: '01'
+                      fatura: '999999999'
+                      cliente: '666666'
+                      nome_cli: SUENOLAR
+                      itens:
+                        - item: '01'
+                          pedido: '666666'
+                          ordsep: '666666'
+                          cod_prod: XXXXXX
+                          lote: AABV8801001
+                          numserie: ASP0469712
+                          qtd: 1
+                          tags: ZZZZZZZZZZZZZZZ
+    parameters: []
+    servers:
+      - url: 'https://virtserver.swaggerhub.com/thiagovalerio_organi/SUENOLAR/1.0.0'
+        description: SEGEL
+  /faturas_inbound:
+    post:
+      summary: SEGEL RECEBENDO ITENS DE FATURA DE ENTRADA
+      tags:
+        - SEGEL
+      responses:
+        default:
+          description: Segue relação de Etiquetas geradas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  itens:
+                    type: array
+                    x-stoplight:
+                      id: z5vln3u7pk8k5
+                    items:
+                      x-stoplight:
+                        id: hbap2ljdcwvzd
+                      type: object
+                      properties:
+                        filial:
+                          type: string
+                          x-stoplight:
+                            id: 5qvis3zuh4e61
+                          example: '01'
+                        cod_prod:
+                          type: string
+                          x-stoplight:
+                            id: dtcz44z8r6a5q
+                          example: XXXXXX
+                        descricao:
+                          type: string
+                          x-stoplight:
+                            id: a275z9kkzyq2t
+                          example: SUENOLAR SUPER DORMILAR  111 X 222
+                        local:
+                          type: string
+                          x-stoplight:
+                            id: g9g9jfnju6y76
+                          example: '01'
+                        lote:
+                          type: string
+                          x-stoplight:
+                            id: v2oz2hdkff38b
+                          example: AABV8801001
+                        serie:
+                          type: string
+                          x-stoplight:
+                            id: 7pu3anjgimz6q
+                          example: '001'
+                        doc:
+                          type: string
+                          x-stoplight:
+                            id: l33m4a7gd3ylk
+                          example: '999999999'
+                        fornece:
+                          type: string
+                          x-stoplight:
+                            id: 5jtcfufa973lt
+                          example: '666666'
+                        qtd:
+                          type: number
+                          x-stoplight:
+                            id: x5ir7untzqikx
+                          example: '1'
+                        numserie:
+                          type: string
+                          x-stoplight:
+                            id: kmrwjsgj208yc
+                          example: ASP0469712
+              examples:
+                Example 1:
+                  value:
+                    itens:
+                      - filial: '01'
+                        cod_prod: XXXXXX
+                        descricao: SUENOLAR SUPER DORMILAR  111 X 222
+                        local: '01'
+                        lote: AABV8801001
+                        serie: '001'
+                        doc: '999999999'
+                        fornece: '666666'
+                        qtd: 1
+                        numserie: ASP0469712
+      operationId: post-faturas_inbound
+      description: Endpoint SEGEL dedicado a receber registros de itens de faturas/remissiones de entrada para gerar registros de etiquetas e devolve-los ao Protheus para que viabilize os processo de movimentação separação e faturamento
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                itens:
+                  type: array
+                  x-stoplight:
+                    id: xvqko7euzdn04
+                  items:
+                    x-stoplight:
+                      id: 8uxy81nwdq9ke
+                    type: object
+                    properties:
+                      filial:
+                        type: string
+                        x-stoplight:
+                          id: z9ckmc2hot3v2
+                        example: '01'
+                      cod_prod:
+                        type: string
+                        x-stoplight:
+                          id: 4w7df85uir818
+                        example: XXXXXX
+                      descricao:
+                        type: string
+                        x-stoplight:
+                          id: mmcpa8tmxovx6
+                        example: SUENOLAR SUPER DORMILAR  111 X 222
+                      local:
+                        type: string
+                        x-stoplight:
+                          id: s6gu35iwcdj37
+                        example: '01'
+                      lote:
+                        type: string
+                        x-stoplight:
+                          id: tm4av8csw3hvt
+                        example: AABV8801001
+                      serie:
+                        type: string
+                        x-stoplight:
+                          id: 24o8w1ndcw3fp
+                        example: '001'
+                      doc:
+                        type: string
+                        x-stoplight:
+                          id: 9h8rrrl3rol9w
+                        example: '999999999'
+                      fornece:
+                        type: string
+                        x-stoplight:
+                          id: vd23alvpitzz3
+                        example: '666666'
+                      qtd:
+                        type: number
+                        x-stoplight:
+                          id: uz22dd23fdja7
+                        example: 30
+            examples:
+              Example 1:
+                value:
+                  itens:
+                    - filial: '01'
+                      cod_prod: XXXXXX
+                      descricao: SUENOLAR SUPER DORMILAR  111 X 222
+                      local: '01'
+                      lote: AABV8801001
+                      serie: '001'
+                      doc: '999999999'
+                      fornece: '666666'
+                      qtd: 30
+    servers:
+      - url: 'https://virtserver.swaggerhub.com/thiagovalerio_organi/SUENOLAR/1.0.0'
+        description: SEGEL
+components:
+  schemas: {}
+  securitySchemes:
+    apiKey_1:
+      type: http
+      scheme: basic
