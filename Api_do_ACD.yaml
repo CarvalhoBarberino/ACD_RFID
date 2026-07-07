@@ -2,12 +2,11 @@
 openapi: 3.0.0
 servers:
   # Added by API Auto Mocking Plugin
-  - description: PROTHEUS
+  # Added by API Auto Mocking Plugin
+  - description: SwaggerHub API Auto Mocking
     url: 'https://virtserver.swaggerhub.com/thiagovalerio_organi/SUENOLAR/1.0.0'
-  - url: 'https://virtserver.swaggerhub.com/thiagovalerio_organi/SUENOLAR/1.0.0'
-    description: SUENOLAR
 info:
-  description: API desenvolvida para promover integração entre o ERP TOTVS Protheus e o mIddleware a ser desenvolvido pela empresa SEGEL para o cliente SUENOLAR
+  description: API desenvolvida para integração entre o ERP TOTVS Protheus e o mIddleware a ser desenvolvido pela empresa SEGEL para o cliente SUENOLAR
   version: 1.0.0
   title: API SUEÑOLAR - PROTHEUS - SEGEL
   contact:
@@ -25,7 +24,7 @@ tags:
 paths:
   /production_order:
     servers:
-      - url: 'https://virtserver.swaggerhub.com/thiagovalerio_organi/SUENOLAR/1.0.0'
+      - url: 'https://a_definir_segel.com/ACD'
         description: SEGEL
     post:
       summary: SEGEL RECEBENDO ORDEM DE PRODUÇÃO
@@ -188,7 +187,7 @@ paths:
                   tags: ZZZZZZZZZZZZZZZ
       description: 'Endpoint Protheus dedicado a receber e registrar apontamentos de produção, endereçamento e gereação de registro e etiqueta automáticamente. Necessários para posterior processos de expedição e logistica.'
     servers:
-      - url: 'https://virtserver.swaggerhub.com/thiagovalerio_organi/SUENOLAR/1.0.0'
+      - url: 'https://a_definir_protheus.com/ACD'
         description: PROTHEUS
   /faturas_outbound:
     post:
@@ -203,7 +202,7 @@ paths:
         '409':
           description: Faturas já recebidas anteriormente
       operationId: post-faturas_outbound
-      description: Endpoint SEGEL dedicado a receber registro de faturas/remissiones separadas e faturadas no Protheus para cruzamento das informações de etiquetas lidas durante o processo de separação e faturamento vs etiquetas identificadas durante o carregamento
+      description: Endpoint SEGEL dedicado a receber registro de faturas/remissiones separadas no Protheus para cruzamento das informações de etiquetas lidas durante o processo de separação e faturamento vs etiquetas identificadas durante o carregamento
       requestBody:
         content:
           application/json:
@@ -337,7 +336,7 @@ paths:
                           tags: ZZZZZZZZZZZZZZZ
     parameters: []
     servers:
-      - url: 'https://virtserver.swaggerhub.com/thiagovalerio_organi/SUENOLAR/1.0.0'
+      - url: 'https://a_definir_segel.com/ACD'
         description: SEGEL
   /faturas_inbound:
     post:
@@ -501,11 +500,316 @@ paths:
                       fornece: '666666'
                       qtd: 30
     servers:
-      - url: 'https://virtserver.swaggerhub.com/thiagovalerio_organi/SUENOLAR/1.0.0'
+      - url: 'https://a_definir_segel.com/ACD'
         description: SEGEL
+  /transf_fil/out:
+    post:
+      summary: PROTHEUS RECEBE TRANSFERENCIA ENTRE FILIAIS (SAÍDA)
+      tags: []
+      responses:
+        '201':
+          description: Created
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Message:
+                    type: string
+                    x-stoplight:
+                      id: fcsgfv8dei6v3
+                  Details:
+                    type: string
+                    x-stoplight:
+                      id: 4ttnoxurj1ig1
+              examples:
+                Example 1:
+                  value:
+                    Message: Não foi possível criar registro
+                    Details: Código de produto 000736 é inválido
+      operationId: out
+      description: "Protheus recebe aviso de saída de produtos com destino a outra filial.\r\nProcesso disparado na filial de origem."
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                'OrdemSaidaNum:':
+                  type: string
+                  x-stoplight:
+                    id: fwsn4qbn88vae
+                FilOrig:
+                  type: string
+                  x-stoplight:
+                    id: 0e0n30l27swac
+                FilDest:
+                  type: string
+                  x-stoplight:
+                    id: s3k3mm3rqqi2z
+                Itens:
+                  type: array
+                  x-stoplight:
+                    id: yoglgeq8ixkfl
+                  items:
+                    x-stoplight:
+                      id: wwzt0bzi0unob
+                    type: object
+                    properties:
+                      CodProd:
+                        type: string
+                        x-stoplight:
+                          id: ykgshzq5fpgps
+                      Qtd:
+                        type: number
+                        x-stoplight:
+                          id: kywk7m2z9thqz
+                      Local:
+                        type: string
+                        x-stoplight:
+                          id: gknwqjlj7xv89
+                      Lote:
+                        type: string
+                        x-stoplight:
+                          id: 2ub6n281khe60
+                      SerialNumber:
+                        type: string
+                        x-stoplight:
+                          id: qdlxgsbwhoitd
+                      Endereco:
+                        type: string
+                        x-stoplight:
+                          id: pmi8xohdwoybk
+            examples:
+              Example 1:
+                value:
+                  'OrdemSaidaNum:': '000154'
+                  FilOrig: '01'
+                  FilDest: '02'
+                  Itens:
+                    - CodProd: '0001546'
+                      Qtd: 45
+                      Local: '01'
+                      Lote: '001546'
+                      SerialNumber: '0004687'
+                      Endereco: '0048765'
+                    - CodProd: '0001616'
+                      Qtd: 95
+                      Local: '01'
+                      Lote: '001547'
+                      SerialNumber: '0004688'
+                      Endereco: '0048740'
+                    - CodProd: '0001590'
+                      Qtd: 112
+                      Local: '02'
+                      Lote: '001547'
+                      SerialNumber: '0004688'
+                      Endereco: '0048767'
+      security:
+        - ProtheusBearerToken: []
+    parameters: []
+  /transf_fil/fatura:
+    post:
+      summary: SEGEL RECEBE FATURA TRANSFERENCIA ENTRE FILIAIS
+      tags: []
+      responses:
+        '200':
+          description: OK
+      operationId: post-fatura
+      description: Segel (filial de destino) recebe aviso de faturas de entrada para os casos de transferencia entre filiais.
+      security:
+        - ProtheusBasic: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                Faturas:
+                  type: array
+                  x-stoplight:
+                    id: gngr199l4xktr
+                  items:
+                    x-stoplight:
+                      id: 7qwhb1b5dvho2
+                    type: object
+                    properties:
+                      Fatura:
+                        type: string
+                        x-stoplight:
+                          id: lvg4wp5c5blk0
+                      FilialOrig:
+                        type: string
+                        x-stoplight:
+                          id: nz1x2r440gt08
+                      FilialDest:
+                        type: string
+                        x-stoplight:
+                          id: ljuv1eumdcm4y
+                      Itens:
+                        type: array
+                        x-stoplight:
+                          id: zthw9zomqa6z1
+                        items:
+                          x-stoplight:
+                            id: leihjkwamiovg
+                          type: object
+                          properties:
+                            CodProd:
+                              type: string
+                              x-stoplight:
+                                id: 4dlg5a55kj631
+                            Qtd:
+                              type: number
+                              x-stoplight:
+                                id: zk1tfp1jjxxwu
+                            Serie:
+                              type: string
+                              x-stoplight:
+                                id: 3duwstihl81lm
+            examples:
+              Example 1:
+                value:
+                  Faturas:
+                    - Fatura: '000007515'
+                      FilialOrig: '01'
+                      FilialDest: '02'
+                      Itens:
+                        - CodProd: '00001'
+                          Qtd: 100
+                          Serie: '0001'
+                        - CodProd: '00030'
+                          Qtd: 700
+                          Serie: '0002'
+                    - Fatura: '000007516'
+                      FilialOrig: '02'
+                      FilialDest: '03'
+                      Itens:
+                        - CodProd: '00031'
+                          Qtd: 40
+                          Serie: '0003'
+                        - CodProd: '0033'
+                          Qtd: 20
+                          Serie: '0004'
+                        - CodProd: '0090'
+                          Qtd: 60
+                          Serie: '0005'
+    parameters: []
+  /transf_fil/in:
+    post:
+      summary: PROTHEUS RECEBE AVISO DE FATURAS ENTRANDO
+      tags: []
+      responses:
+        '202':
+          description: Accepted
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Message:
+                    type: string
+                    x-stoplight:
+                      id: coiyyx7s0nk35
+                  Detail:
+                    type: string
+                    x-stoplight:
+                      id: 1bkj8ud6k3sen
+              examples:
+                Example 1:
+                  value:
+                    Message: Fatura não existe
+                    Detail: Fatura numero 000489 não é uma transferencia entre filiais
+      operationId: post-in
+      description: "Protheus recebe aviso de fatura entre filiais entrando.\r\nAviso emitido pela filial de destino. Deve conter informações sobre fatura e itens que estão entrando."
+      security:
+        - ProtheusBearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                Faturas:
+                  type: array
+                  x-stoplight:
+                    id: 1k02rzbce7iyk
+                  items:
+                    x-stoplight:
+                      id: e02rvcml0iy6x
+                    type: object
+                    properties:
+                      Fatura:
+                        type: string
+                        x-stoplight:
+                          id: ia1htn7dptvt6
+                      FilOrig:
+                        type: string
+                        x-stoplight:
+                          id: e8npwnqwqx19n
+                      FilDest:
+                        type: string
+                        x-stoplight:
+                          id: du8drhtsubz7k
+                      Itens:
+                        type: array
+                        x-stoplight:
+                          id: na8oju10e69vo
+                        items:
+                          x-stoplight:
+                            id: coe8ab5mpmms0
+                          type: object
+                          properties:
+                            CodProd:
+                              type: string
+                              x-stoplight:
+                                id: ade4vukrmtgo3
+                            Qtd:
+                              type: number
+                              x-stoplight:
+                                id: 3cwsacwg8ym30
+                            SerialNumber:
+                              type: string
+                              x-stoplight:
+                                id: veylzxm01obyg
+            examples:
+              Example 1:
+                value:
+                  Faturas:
+                    - Fatura: '000258'
+                      FilOrig: '01'
+                      FilDest: '02'
+                      Itens:
+                        - CodProd: '000495'
+                          Qtd: 10
+                          SerialNumber: '000632'
+                        - CodProd: '000496'
+                          Qtd: 20
+                          SerialNumber: '000633'
+                        - CodProd: '000497'
+                          Qtd: 30
+                          SerialNumber: '000634'
+                    - Fatura: '000259'
+                      FilOrig: '01'
+                      FilDest: '03'
+                      Itens:
+                        - CodProd: '000498'
+                          Qtd: 40
+                          SerialNumber: '000635'
+                        - CodProd: '000499'
+                          Qtd: 50
+                          SerialNumber: '000636'
+    parameters: []
 components:
   schemas: {}
   securitySchemes:
-    apiKey_1:
+    ProtheusBasic:
       type: http
       scheme: basic
+    ProtheusBearerToken:
+      type: http
+      scheme: bearer
