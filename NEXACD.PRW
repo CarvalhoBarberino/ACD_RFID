@@ -31,8 +31,7 @@ user function aptProd(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cS
 		{"D3_DESCRI",		cDescr,				NIL},;
 		{"D3_LOCAL",		cArmazem,			NIL},;
 		{"D3_LOTECTL",		cLote,				NIL},;
-		{"D3_QUANT",		nQuant,				NIL},;
-		{"D3_NUMSERI",		cSerie,				NIL};
+		{"D3_QUANT",		nQuant,				NIL};
 		}
 
 	conOut(VarInfo("aVetor", aVetor, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
@@ -46,6 +45,6 @@ user function aptProd(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cS
 		aRet[2] := Mostraerro("\temp\erro.txt")
 		conOut(VarInfo("aRet", aRet, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
 	endIf
-	
+
 	conOut("user function aptProd FIM " + NOME_FONTE)
 return aRet
