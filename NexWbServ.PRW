@@ -33,18 +33,6 @@ WSMETHOD POST apontamento_producao WSSERVICE nexSolucoes
 	conOut("POST apontamento_producao WSSERVICE nexSolucoes INICIO " + NOME_FONTE)
 	self:SetContentType('aplication/json')
 	conOut(cConteudo)
-	RpcSetType(3) // Ninguém sabe pra que isso serve
-	RpcSetEnv(compEmpre /*cRpcEmp*/, ;
-		cFilia /*cRpcFil*/, ;
-		/*cEnvUser*/, ;
-		/*cEnvPass*/, ;
-		"EST" /*cEnvMod*/, ;
-		"MATA250" /*cFunName*/, ;
-		/*aTables*/, ;
-		/*lShowFinal*/, ;
-		/*lAbend*/, ;
-		/*lOpenSX*/, ;
-		/*lConnect*/) /* https://tdn.totvs.com/display/public/framework/RpcSetEnv */
 
 	if !empty(cErroJson)
 		conOut(cErroJson + " " + NOME_FONTE)
