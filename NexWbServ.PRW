@@ -63,7 +63,7 @@ WSMETHOD POST apontamento_producao WSSERVICE nexSolucoes
 			conOut("linha 74")
 			DisarmTransaction()
 			conOut("erro: " + aExecAut[2])
-			oJsonRet["erro"] := aExecAut[2]
+			oJsonRet["U_aptProd erro"] := aExecAut[2]
 			cRet := oJsonRet:toJson()
 			conOut(cRet)
 			self:setResponse(ENCODEUTF8(cRet))
@@ -71,6 +71,7 @@ WSMETHOD POST apontamento_producao WSSERVICE nexSolucoes
 			conOut("POST apontamento_producao WSSERVICE nexSolucoes FIM erro U_aptProd " + NOME_FONTE)
 			return .T.
 		endIf
+		oJsonRet["U_aptProd"] := aExecAut[2]
 		conOut("linha 85")
 		aExecAut := U_endereca(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cSerie, cTags)
 		conOut(VarInfo("U_endereca aExecAut", aExecAut, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
@@ -78,7 +79,7 @@ WSMETHOD POST apontamento_producao WSSERVICE nexSolucoes
 			conOut("linha 88")
 			DisarmTransaction()
 			conOut("erro: " + aExecAut[2])
-			oJsonRet["erro"] := aExecAut[2]
+			oJsonRet["U_endereca erro"] := aExecAut[2]
 			cRet := oJsonRet:toJson()
 			conOut(cRet)
 			self:setResponse(ENCODEUTF8(cRet))
@@ -86,6 +87,7 @@ WSMETHOD POST apontamento_producao WSSERVICE nexSolucoes
 			conOut("POST apontamento_producao WSSERVICE nexSolucoes FIM erro U_endereca " + NOME_FONTE)
 			return .T.
 		endIf
+		oJsonRet["U_endereca"] := aExecAut[2]
 		conOut("linha 99")
 	END TRANSACTION
 
