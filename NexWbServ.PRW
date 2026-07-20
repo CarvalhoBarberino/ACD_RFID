@@ -7,9 +7,10 @@
 #DEFINE NOME_FONTE "NexWbServ.PRW"
 #DEFINE compEmpre "99"
 
-WSRESTFUL nexSolucoes DESCRIPTION "webService com os metodos da NEX Solucoes" // https://terminaldeinformacao.com/2024/07/13/criando-um-webservice-rest-com-wsrestful-maratona-advpl-e-tl-535/
+WSRESTFUL nexSolucoes DESCRIPTION "webService com os metodos da NEX Solucoes" // https://tdn.totvs.com/display/public/framework/02.+Criando+uma+classe+REST https://terminaldeinformacao.com/2024/07/13/criando-um-webservice-rest-com-wsrestful-maratona-advpl-e-tl-535/
 
-	WSMETHOD POST apontamento_producao DESCRIPTION "Endpoint Protheus dedicado a receber e registrar apontamentos de produção" WSSYNTAX "/production_add"
+	WSMETHOD POST apontamento_producao DESCRIPTION "Endpoint Protheus dedicado a receber e registrar apontamentos de produção" PATH "/production_add"
+	WSMETHOD POST Teste_production_order DESCRIPTION "Endpoint para testar a funcao opToSegel" PATH "/production_order"
 
 END WSRESTFUL
 
@@ -97,4 +98,13 @@ WSMETHOD POST apontamento_producao WSSERVICE nexSolucoes
 	self:setResponse(ENCODEUTF8(cRet))
 	self:setStatus(201)
 	conOut("POST apontamento_producao WSSERVICE nexSolucoes FIM ok " + NOME_FONTE)
+return .T.
+
+WSMETHOD POST Teste_production_order WSSERVICE nexSolucoes
+	local cConteudo		:= self:getContent()
+	conOut("POST Teste_production_order WSSERVICE nexSolucoes INICIO " + NOME_FONTE)
+	conOut(cConteudo)
+	self:setResponse(ENCODEUTF8("POST Teste_production_order Ok"))
+	self:setStatus(201)
+	conOut("POST Teste_production_order WSSERVICE nexSolucoes FIM " + NOME_FONTE)
 return .T.

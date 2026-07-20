@@ -2,6 +2,7 @@
 #INCLUDE "RWMAKE.CH"
 
 #DEFINE NOME_FONTE "NEXACD.PRW"
+#DEFINE BEARER_TOKEN "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InBKd3RQdWJsaWNLZXlGb3IyNTYifQ.eyJpc3MiOiJUT1RWUy1BRFZQTC1GV0pXVCIsInN1YiI6Ik5FWC1KVUxJTy5DQVJWQUxITyIsImlhdCI6MTc4NDU1NDYxOSwidXNlcmlkIjoiMDAwMDAyIiwiZXhwIjoxNzg0NTU4MjE5LCJlbnZJZCI6IlBBUkFHVUFZIn0.A-7qQpUh0lqmFupDkpxAJ3MMWoFBFxQRHsn4rc1I91zDRpPAw2DyPNI6sDqoWEGSyMgSXEUzIwWO-8oO6lm90VoA7UYokV7-qKj8J86zFNCV9oHIzSrqknCk-JY87FgqLtoSLzsT3YBSNwDrEEWUtfHRYE0jIKkj4AwXj5AAFXbBEnLn71WvvgML4N5UxJsUVXDVnpCQdzoynrPTnPfDzQrlwuOzzk0p5uYqlc6Taf_hIXDpkQcEcKNt-VgBSB_uVRCBFG5fR_ASItN9-r_WNCH9bFsEZZdQ26PGKc7RQQRoKq1xQs44EsyFGFdSLH5810KjPG0cwg7mrZdQOqQp-w"
 
 user function aptProd(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cSerie, cTags)
 	local aVetor
@@ -44,6 +45,7 @@ user function endereca(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, c
 	local aItensSDB			:= {}
 	local aCabSDA
 	local aItSDB
+	local cAptEnd			:= superGetMV("NX_APTEND", .F., "APT")
 	private lMsErroAuto
 
 	conOut("user function U_endereca INICIO " + NOME_FONTE)
@@ -85,7 +87,7 @@ user function endereca(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, c
 	aItSDB := {;
 		{"DB_ITEM",			"0001",			Nil},;
 		{"DB_ESTORNO",		" ",			Nil},;
-		{"DB_LOCALIZ",		"APT",			Nil},;
+		{"DB_LOCALIZ",		cAptEnd,		Nil},;
 		{"DB_DATA",			dDataBase,		Nil},;
 		{"DB_NUMSERI",		cSerie,			Nil},;
 		{"DB_QUANT",		nQuant,			Nil},;
@@ -204,7 +206,6 @@ user function MTA265I()
 			{"ZB0_DESPRO",		posicione("SB1", 1, fwXFilial("SB1") + SDB->DB_PRODUTO, "B1_DESC")}, ;
 			{"ZB0_QTDE",		SDB->DB_QUANT}, ;
 			{"ZB0_LOCAL",		SDB->DB_LOCAL}, ;
-			{"ZB0_LOCALI",		SDB->DB_LOCALIZ}, ;
 			{"ZB0_LOTE",		SDB->DB_LOTECTL}, ;
 			{"ZB0_SLOTE",		SDB->DB_NUMLOTE}, ;
 			{"ZB0_OP",			left(SDB->DB_DOC, 11)}, ;
@@ -224,16 +225,229 @@ user function CBRETEAN()
 
 	dbSelectArea('ZB0')
 	dbSetOrder(1)
-	msSeek(fwXFilial('ZB0') + cId)
-
-	aRet := {;
-		ZB0->ZB0_CODPRO, ;
-		ZB0->ZB0_QTDE, ;
-		ZB0->ZB0_LOTE, ;
-		NIL, ;
-		ZB0->ZB0_NUMSER, ;
-		ZB0->ZB0_LOCALI;
-	}
+	if msSeek(fwXFilial('ZB0') + cId)
+		aRet := {;
+			ZB0->ZB0_CODPRO, ;
+			ZB0->ZB0_QTDE, ;
+			ZB0->ZB0_LOTE, ;
+			NIL, ;
+			ZB0->ZB0_NUMSER, ;
+			NIL;
+			}
+	endIf
 
 	fwRestArea(oArea)
 return aRet // Espera devolver aRet = {"Código do Produto","Quantidade(Embalagem normalmente analisado na nQE := SB1->B1_QE no processo padrão)","Lote","Data de Validade","Número de Série","Endereço Destino"}
+
+user function MTA650MNU()
+/*
+Estrutura do vetor aRotina:
+[1]Nome a aparecer no cabecalho
+[2]Nome da Rotina associada
+[3]Reservado
+[4]Tipo de Transação a ser efetuada, podendo conter:
+1 - Pesquisa e Posiciona em um Banco de Dados
+2 - Simplesmente Mostra os Campos
+3 - Inclui registros no Bancos de Dados
+4 - Altera o registro corrente
+5 - Remove o registro corrente do Banco de Dados
+[5]Nivel de acesso
+[6]Habilita Menu Funcional
+*/
+	aAdd(aRotina, {'Envia Op p/ SEGEL', 'U_opToSegel()', 0, 4 })
+return
+
+user function opToSegel()
+	local oArea			:= fwGetArea()
+	local aHeader		:= {}
+	local cCodProd		:= allTrim(SC2->C2_PRODUTO)
+	local cOp			:= allTrim(SC2->C2_NUM + SC2->C2_ITEM + SC2->C2_SEQUEN)
+	local cUrl			:= "localhost:8080" // juk Criar parametro para estes enderecos
+	local cPath			:= "/rest/nexsolucoes/production_order"
+	local lRetOk
+	local oRestClient	:= FWRest():New(cUrl) // https://tdn.totvs.com/display/public/framework/FWRest
+	local oJReq			:= JsonObject():New()
+	local cRet			:= ""
+	local cToken		:= BEARER_TOKEN
+
+
+
+	conOut("opToSegel() INICIO" + NOME_FONTE)
+
+	dbSelectArea("SB1")
+	dbSetOrder(1) // B1_FILIAL + B1_COD
+
+	if !msSeek(fwXFilial("SB1") + cCodProd)
+		msgAlert("Produto " + cCodProd + " não cadastrado na filial " + fwXFilial("SB1") + ".", NOME_FONTE)
+		return
+	endIf
+
+	if "PA" != SB1->B1_TIPO
+		msgAlert("Não é permitido enviar OP para SEGEL quando o produto não for do tipo PA.", NOME_FONTE)
+		return
+	endIf
+
+	if "S" == SC2->C2_ZOPENV
+		msgAlert("OP já foi enviada para a SEGEL", NOME_FONTE)
+		return
+	endIf
+
+	if !msgYesNo("Confirma envio da OP " + cOp + "?" + CRLF + "Produto: " + cCodProd + CRLF + "Descrição: " + allTrim(SB1->B1_DESC) + CRLF + "Quantidade: " + cValToChar(SC2->C2_QUANT) + " " + SC2->C2_UM, NOME_FONTE)
+		msgAlert("Abortado pelo operador", NOME_FONTE)
+		return
+	endIf
+
+/*	Exemplo de json que deve ser enviado
+	{
+		"filial": "01",
+		"op": "AABV8801001",
+		"cod_prod": "XXXXXX",
+		"descricao": "SUENOLAR SUPER DORMILAR  111 X 222",
+		"local": "01",
+		"lote": "AABV8801001", é o proprio numero da ordem
+		"qtd": 10,
+		"familia": "ASP"
+	}
+*/
+	oJReq["filial"] := SC2->C2_FILIAL
+	oJReq["op"] := cOp
+	oJReq["cod_prod"] := cCodProd
+	oJReq["descricao"] := allTrim(SB1->B1_DESC)
+	oJReq["local"] := SC2->C2_LOCAL
+	oJReq["lote"] := cOp
+	oJReq["qtd"] := SC2->C2_QUANT
+	oJReq["familia"] := "teste" // juk precisa descobrir o nome do campo customizado que já existe na SB1 da Suenolar
+
+
+	Aadd(aHeader, "Content-Type: application/json")
+	Aadd(aHeader, "Authorization: Bearer " + cToken)
+	//Aadd(aHeader, "Authorization: Basic " + Encode64("app01:fTdUlDgdQQ4MRQhLahykiKhON6k97Zfly5SV6fwpa5zCE"))
+	oRestClient:SetPath(cPath)
+	oRestClient:SetPostParams(oJReq:ToJson())
+
+	lRetOk := oRestClient:post(aHeader)
+	if lRetOk
+		cRet += "ACERTADÃO " + oRestClient:getResult()
+	else
+		cRet += "ERRINHO " + oRestClient:getLastError()
+	endIf
+
+	msgAlert(cRet, NOME_FONTE) // juk Continuar daqui. Precisa decidir o que fazer com a informação de retorno. Precisa criar campo na SC2 pra guardar o retorno
+
+	fwRestArea(oArea)
+	conOut("opToSegel() FIM" + NOME_FONTE)
+return
+
+user function C9DriveIn()
+	local cPedidoDe
+	local cPedidoAte
+	local cCliDe
+	local cCliAte
+	local cLojaDe
+	local cLojaAte
+	local dDataDe
+	local dDataAte
+	local cProdDe
+	local cProdAte
+	local cQy				:= ""
+	local cAliasQy			:= getNextAlias()
+	local cAliasC9			:= getNextAlias()
+
+	local cAliasTemp
+	local aRotina
+	local aEstrutura := {;
+		{"C9_FILIAL",		"Filial",			tamSX3("C9_FILIAL")[3],		tamSX3("C9_FILIAL")[1],		tamSX3("C9_FILIAL")[2],		""},;
+		{"C9_PEDIDO",		"Pedido",			tamSX3("C9_PEDIDO")[3],		tamSX3("C9_PEDIDO")[1],		tamSX3("C9_PEDIDO")[2],		""},;
+		{"C9_CLIENTE",		"Cliente",			tamSX3("C9_CLIENTE")[3],	tamSX3("C9_CLIENTE")[1],	tamSX3("C9_CLIENTE")[2],	""},;
+		{"C9_LOJA",			"Loja",				tamSX3("C9_LOJA")[3],		tamSX3("C9_LOJA")[1],		tamSX3("C9_LOJA")[2],		""},;
+		{"DTENTREGA",		"Entrega",			"D",						8,							0,							""},;
+		{"C9_ITEM",			"Item",				tamSX3("C9_ITEM")[3],		tamSX3("C9_ITEM")[1],		tamSX3("C9_ITEM")[2],		""},;
+		{"C9_SEQUEN",		"Sequencia",		tamSX3("C9_SEQUEN")[3],		tamSX3("C9_SEQUEN")[1],		tamSX3("C9_SEQUEN")[2],		""},;
+		{"C9_PRODUTO",		"Produto",			tamSX3("C9_PRODUTO")[3],	tamSX3("C9_PRODUTO")[1],	tamSX3("C9_PRODUTO")[2],	""},;
+		{"B1_DESC",			"Descrição",		tamSX3("B1_DESC")[3],		tamSX3("B1_DESC")[1],		tamSX3("B1_DESC")[2],		""},;
+		{"C9_LOCAL",		"Armazém",			tamSX3("C9_LOCAL")[3],		tamSX3("C9_LOCAL")[1],		tamSX3("C9_LOCAL")[2],		""},;
+		{"C9_LOTECTL",		"Lote",				tamSX3("C9_LOTECTL")[3],	tamSX3("C9_LOTECTL")[1],	tamSX3("C9_LOTECTL")[2],	""},;
+		{"C9_NUMSERI",		"Num Serie",		tamSX3("C9_NUMSERI")[3],	tamSX3("C9_NUMSERI")[1],	tamSX3("C9_NUMSERI")[2],	""},;
+		{"C9_QTDLIB",		"Quant. Lib",		tamSX3("C9_QTDLIB")[3],		tamSX3("C9_QTDLIB")[1],		tamSX3("C9_QTDLIB")[2],		""},;
+		{"REC",				"Rec",				tamSX3("B1_COD")[3],		tamSX3("B1_COD")[1],		tamSX3("B1_COD")[2],		""},;
+		{"SEL_OK",			"Sel",				"C",						2,							0,							""}}
+	//	 Campo				Título				Típo						Tamanho						Decimais					Mascara
+	local cCampoIdx			:= "REC"
+	local cCampoSel			:= "SEL_OK"
+	local oObjeto1
+	local cAliasTemp
+
+
+
+
+	
+
+	if !Pergunte("C9DRIVEIN ", .T.)
+		msgAlert("As perguntas não foram carregadas corretamente", NOME_FONTE)
+		return
+	endIf
+
+	cPedidoDe	:= MV_PAR01
+	cPedidoAte	:= MV_PAR02
+	cCliDe		:= MV_PAR03
+	cLojaDe		:= MV_PAR04
+	cCliAte		:= MV_PAR05
+	cLojaAte	:= MV_PAR06
+	dDataDe		:= MV_PAR07
+	dDataAte	:= MV_PAR08
+	cProdDe		:= MV_PAR09
+	cProdAte	:= MV_PAR10
+
+	cQy := "SELECT " + CRLF
+	cQy += "	C9_FILIAL, " + CRLF
+	cQy += "	C5_FILIAL, " + CRLF
+	cQy += "	B1_FILIAL, " + CRLF
+	cQy += "	C9_PEDIDO, " + CRLF
+	cQy += "	C9_CLIENTE, " + CRLF
+	cQy += "	C9_LOJA, " + CRLF
+	cQy += "	C5_FECENT AS DTENTREGA, " + CRLF
+	cQy += "	C9_ITEM, " + CRLF
+	cQy += "	C9_SEQUEN, " + CRLF
+	cQy += "	C9_PRODUTO, " + CRLF
+	cQy += "	B1_DESC, " + CRLF
+	cQy += "	C9_LOCAL, " + CRLF
+	cQy += "	C9_LOTECTL, " + CRLF
+	cQy += "	C9_NUMSERI, " + CRLF
+	cQy += "	C9_QTDLIB, " + CRLF
+	cQy += "	C9_PEDIDO + C9_ITEM + C9_SEQUEN AS REC, " + CRLF
+	cQy += "	'' AS SEL_OK " + CRLF
+	cQy += "FROM " + CRLF
+	cQy += "	SC9990 C9 " + CRLF
+	cQy += "	INNER JOIN " + CRLF
+	cQy += "		SC5990 C5 " + CRLF
+	cQy += "		ON " + fwJoinFilial("SC9", "SC5", "C9", "C5", .T., , .T.) + " " + CRLF // https://tdn.totvs.com/display/public/framework/FWJoinFilial
+	cQy += "		AND C9_PEDIDO = C5_NUM " + CRLF
+	cQy += "		AND C5.D_E_L_E_T_ = '' " + CRLF
+	cQy += "	INNER JOIN " + CRLF
+	cQy += "		SB1990 B1 " + CRLF
+	cQy += "		ON " + fwJoinFilial("SC9", "SB1", "C9", "B1", .T., , .T.) + " " + CRLF // https://tdn.totvs.com/display/public/framework/FWJoinFilial
+	cQy += "		AND B1_COD = C9_PRODUTO " + CRLF
+	cQy += "		AND B1.D_E_L_E_T_ = '' " + CRLF
+	cQy += "WHERE " + CRLF
+	cQy += "	C9_PEDIDO BETWEEN '" + cPedidoDe + "' AND '" + cPedidoAte + "' " + CRLF
+	cQy += "	AND C9_CLIENTE BETWEEN '" + cCliDe + "' AND '" + cCliAte + "' " + CRLF
+	cQy += "	AND C9_LOJA BETWEEN '" + cLojaDe + "' AND '" + cLojaAte + "' " + CRLF
+	cQy += "	AND C5_FECENT BETWEEN '" + dToS(dDataDe) + "' AND '" + dToS(dDataAte) + "' " + CRLF
+	cQy += "	AND C9_PRODUTO BETWEEN '" + cProdDe + "' AND '" + cProdAte + "' " + CRLF
+	cQy += "	AND C9_BLEST = '' " + CRLF
+	cQy += "	AND C9_BLCRED = '' " + CRLF
+	cQy += "	AND C9.D_E_L_E_T_ = '' " + CRLF
+	cQy += "ORDER BY " + CRLF
+	cQy += "	C9_PEDIDO, " + CRLF
+	cQy += "	C9_ITEM, " + CRLF
+	cQy += "	C9_SEQUEN; "
+	showLog(cQy)
+
+	dbUseArea(.T., "TOPCONN", TCGenQry(, , cQy), cAliasC9, .T., .T.)
+	dbSelectArea(cAliasC9)
+	(cAliasC9)->(dbGoTop())
+
+	oObjeto1 := jukMarkBrowse():New(aEstrutura, cAliasC9, cCampoIdx, cCampoSel)
+	cAliasTemp := oObjeto1:getAliasTemp()
+	oObjeto1:jukPlay()
+return
