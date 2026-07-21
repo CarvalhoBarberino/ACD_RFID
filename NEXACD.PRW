@@ -352,9 +352,7 @@ user function C9DriveIn()
 	local cQy				:= ""
 	local cAliasQy			:= getNextAlias()
 	local cAliasC9			:= getNextAlias()
-
 	local cAliasTemp
-	local aRotina
 	local aEstrutura := {;
 		{"C9_FILIAL",		"Filial",			tamSX3("C9_FILIAL")[3],		tamSX3("C9_FILIAL")[1],		tamSX3("C9_FILIAL")[2],		""},;
 		{"C9_PEDIDO",		"Pedido",			tamSX3("C9_PEDIDO")[3],		tamSX3("C9_PEDIDO")[1],		tamSX3("C9_PEDIDO")[2],		""},;
@@ -367,7 +365,8 @@ user function C9DriveIn()
 		{"B1_DESC",			"Descrição",		tamSX3("B1_DESC")[3],		tamSX3("B1_DESC")[1],		tamSX3("B1_DESC")[2],		""},;
 		{"C9_LOCAL",		"Armazém",			tamSX3("C9_LOCAL")[3],		tamSX3("C9_LOCAL")[1],		tamSX3("C9_LOCAL")[2],		""},;
 		{"C9_LOTECTL",		"Lote",				tamSX3("C9_LOTECTL")[3],	tamSX3("C9_LOTECTL")[1],	tamSX3("C9_LOTECTL")[2],	""},;
-		{"C9_NUMSERI",		"Num Serie",		tamSX3("C9_NUMSERI")[3],	tamSX3("C9_NUMSERI")[1],	tamSX3("C9_NUMSERI")[2],	""},;
+		{"ENDERECO",		"Endereço",			tamSX3("DC_LOCALIZ")[3],	tamSX3("DC_LOCALIZ")[1],	tamSX3("DC_LOCALIZ")[2],	""},;
+		{"NUMSERI",			"Num Serie",		tamSX3("C9_NUMSERI")[3],	tamSX3("C9_NUMSERI")[1],	tamSX3("C9_NUMSERI")[2],	""},;
 		{"C9_QTDLIB",		"Quant. Lib",		tamSX3("C9_QTDLIB")[3],		tamSX3("C9_QTDLIB")[1],		tamSX3("C9_QTDLIB")[2],		""},;
 		{"REC",				"Rec",				tamSX3("B1_COD")[3],		tamSX3("B1_COD")[1],		tamSX3("B1_COD")[2],		""},;
 		{"SEL_OK",			"Sel",				"C",						2,							0,							""}}
@@ -375,12 +374,7 @@ user function C9DriveIn()
 	local cCampoIdx			:= "REC"
 	local cCampoSel			:= "SEL_OK"
 	local oObjeto1
-	local cAliasTemp
 
-
-
-
-	
 
 	if !Pergunte("C9DRIVEIN ", .T.)
 		msgAlert("As perguntas não foram carregadas corretamente", NOME_FONTE)
@@ -412,7 +406,10 @@ user function C9DriveIn()
 	cQy += "	B1_DESC, " + CRLF
 	cQy += "	C9_LOCAL, " + CRLF
 	cQy += "	C9_LOTECTL, " + CRLF
-	cQy += "	C9_NUMSERI, " + CRLF
+	cQy += "	COALESCE(DC_LOCALIZ, '') AS ENDERECO, " + CRLF
+	cQy += "	CASE " + CRLF
+	cQy += "		WHEN TRIM(C9_NUMSERI) = '' THEN DC_NUMSERI ELSE C9_NUMSERI " + CRLF
+	cQy += "	END AS NUMSERI, " + CRLF
 	cQy += "	C9_QTDLIB, " + CRLF
 	cQy += "	C9_PEDIDO + C9_ITEM + C9_SEQUEN AS REC, " + CRLF
 	cQy += "	'' AS SEL_OK " + CRLF
@@ -428,6 +425,18 @@ user function C9DriveIn()
 	cQy += "		ON " + fwJoinFilial("SC9", "SB1", "C9", "B1", .T., , .T.) + " " + CRLF // https://tdn.totvs.com/display/public/framework/FWJoinFilial
 	cQy += "		AND B1_COD = C9_PRODUTO " + CRLF
 	cQy += "		AND B1.D_E_L_E_T_ = '' " + CRLF
+	cQy += "	LEFT JOIN " + CRLF
+	cQy += "		SDC990 DC " + CRLF
+	cQy += "		ON " + fwJoinFilial("SC9", "SDC", "C9", "DC", .T., , .T.) + " " + CRLF
+	cQy += "		AND DC_PRODUTO = DC_PRODUTO " + CRLF
+	cQy += "		AND C9_LOCAL = DC_LOCAL " + CRLF
+	cQy += "		AND DC_ORIGEM = 'SC6' " + CRLF
+	cQy += "		AND DC_PEDIDO = C9_PEDIDO " + CRLF
+	cQy += "		AND DC_ITEM = C9_ITEM " + CRLF
+	cQy += "		AND DC_SEQ = C9_SEQUEN " + CRLF
+	cQy += "		AND DC_LOTECTL = C9_LOTECTL " + CRLF
+	cQy += "		AND DC_NUMLOTE = C9_NUMLOTE " + CRLF
+	cQy += "		AND DC.D_E_L_E_T_ = '' " + CRLF
 	cQy += "WHERE " + CRLF
 	cQy += "	C9_PEDIDO BETWEEN '" + cPedidoDe + "' AND '" + cPedidoAte + "' " + CRLF
 	cQy += "	AND C9_CLIENTE BETWEEN '" + cCliDe + "' AND '" + cCliAte + "' " + CRLF
@@ -449,5 +458,28 @@ user function C9DriveIn()
 
 	oObjeto1 := jukMarkBrowse():New(aEstrutura, cAliasC9, cCampoIdx, cCampoSel)
 	cAliasTemp := oObjeto1:getAliasTemp()
+	oObjeto1:setARotina({{"Enviar p/ DriveIn", 'U_goDrvIn("' + cAliasTemp + '")', 2, 0}})
 	oObjeto1:jukPlay()
 return
+
+user function goDrvIn(cAliasTemp)
+/*
+	local cUrl			:= "localhost:8080" // juk Criar parametro para estes enderecos
+	local cPath			:= "/rest/nexsolucoes/production_order"
+	local oRestClient	:= FWRest():New(cUrl) // https://tdn.totvs.com/display/public/framework/FWRest
+	local oJReq			:= JsonObject():New()
+	local cToken		:= BEARER_TOKEN
+*/
+
+	conOut("goDrvIn() INICIO" + NOME_FONTE)
+
+	(cAliasTemp)->(dbGoTop())
+	while !(cAliasTemp)->(eOF())
+		if (cAliasTemp)->SEL_OK != "  "
+			conOut("Enviando dados de " + (cAliasTemp)->NUMSERI)
+		endIf
+		(cAliasTemp)->(dbSkip())
+	endDo
+	conOut("goDrvIn() FIM" + NOME_FONTE)
+return
+
