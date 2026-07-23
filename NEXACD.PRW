@@ -2,7 +2,7 @@
 #INCLUDE "RWMAKE.CH"
 
 #DEFINE NOME_FONTE "NEXACD.PRW"
-#DEFINE BEARER_TOKEN "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InBKd3RQdWJsaWNLZXlGb3IyNTYifQ.eyJpc3MiOiJUT1RWUy1BRFZQTC1GV0pXVCIsInN1YiI6Ik5FWC1KVUxJTy5DQVJWQUxITyIsImlhdCI6MTc4NDU1NDYxOSwidXNlcmlkIjoiMDAwMDAyIiwiZXhwIjoxNzg0NTU4MjE5LCJlbnZJZCI6IlBBUkFHVUFZIn0.A-7qQpUh0lqmFupDkpxAJ3MMWoFBFxQRHsn4rc1I91zDRpPAw2DyPNI6sDqoWEGSyMgSXEUzIwWO-8oO6lm90VoA7UYokV7-qKj8J86zFNCV9oHIzSrqknCk-JY87FgqLtoSLzsT3YBSNwDrEEWUtfHRYE0jIKkj4AwXj5AAFXbBEnLn71WvvgML4N5UxJsUVXDVnpCQdzoynrPTnPfDzQrlwuOzzk0p5uYqlc6Taf_hIXDpkQcEcKNt-VgBSB_uVRCBFG5fR_ASItN9-r_WNCH9bFsEZZdQ26PGKc7RQQRoKq1xQs44EsyFGFdSLH5810KjPG0cwg7mrZdQOqQp-w"
+#DEFINE BEARER_TOKEN ""
 
 user function aptProd(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cSerie, cTags)
 	local aVetor
@@ -266,7 +266,7 @@ user function opToSegel()
 	local cPath			:= "/rest/nexsolucoes/production_order"
 	local lRetOk
 	local oRestClient	:= FWRest():New(cUrl) // https://tdn.totvs.com/display/public/framework/FWRest
-	local oJReq			:= JsonObject():New()
+	local oJReq			:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
 	local cRet			:= ""
 	local cToken		:= BEARER_TOKEN
 
@@ -353,6 +353,7 @@ user function C9DriveIn()
 	local cAliasQy			:= getNextAlias()
 	local cAliasC9			:= getNextAlias()
 	local cAliasTemp
+	local nTamIdx			:= tamSX3("C5_FECENT")[1] + tamSX3("C9_CLIENTE")[1] + tamSX3("C9_PEDIDO")[1] + tamSX3("C9_ITEM")[1] + tamSX3("C9_SEQUEN")[1]
 	local aEstrutura := {;
 		{"C9_FILIAL",		"Filial",			tamSX3("C9_FILIAL")[3],		tamSX3("C9_FILIAL")[1],		tamSX3("C9_FILIAL")[2],		""},;
 		{"C9_PEDIDO",		"Pedido",			tamSX3("C9_PEDIDO")[3],		tamSX3("C9_PEDIDO")[1],		tamSX3("C9_PEDIDO")[2],		""},;
@@ -368,7 +369,7 @@ user function C9DriveIn()
 		{"ENDERECO",		"Endereço",			tamSX3("DC_LOCALIZ")[3],	tamSX3("DC_LOCALIZ")[1],	tamSX3("DC_LOCALIZ")[2],	""},;
 		{"NUMSERI",			"Num Serie",		tamSX3("C9_NUMSERI")[3],	tamSX3("C9_NUMSERI")[1],	tamSX3("C9_NUMSERI")[2],	""},;
 		{"C9_QTDLIB",		"Quant. Lib",		tamSX3("C9_QTDLIB")[3],		tamSX3("C9_QTDLIB")[1],		tamSX3("C9_QTDLIB")[2],		""},;
-		{"REC",				"Rec",				tamSX3("B1_COD")[3],		tamSX3("B1_COD")[1],		tamSX3("B1_COD")[2],		""},;
+		{"REC",				"Rec",				"C",						nTamIdx,					0,							""},;
 		{"SEL_OK",			"Sel",				"C",						2,							0,							""}}
 	//	 Campo				Título				Típo						Tamanho						Decimais					Mascara
 	local cCampoIdx			:= "REC"
@@ -394,8 +395,6 @@ user function C9DriveIn()
 
 	cQy := "SELECT " + CRLF
 	cQy += "	C9_FILIAL, " + CRLF
-	cQy += "	C5_FILIAL, " + CRLF
-	cQy += "	B1_FILIAL, " + CRLF
 	cQy += "	C9_PEDIDO, " + CRLF
 	cQy += "	C9_CLIENTE, " + CRLF
 	cQy += "	C9_LOJA, " + CRLF
@@ -411,7 +410,7 @@ user function C9DriveIn()
 	cQy += "		WHEN TRIM(C9_NUMSERI) = '' THEN DC_NUMSERI ELSE C9_NUMSERI " + CRLF
 	cQy += "	END AS NUMSERI, " + CRLF
 	cQy += "	C9_QTDLIB, " + CRLF
-	cQy += "	C9_PEDIDO + C9_ITEM + C9_SEQUEN AS REC, " + CRLF
+	cQy += "	C5_FECENT + C9_CLIENTE + C9_PEDIDO + C9_ITEM + C9_SEQUEN AS REC, " + CRLF
 	cQy += "	'' AS SEL_OK " + CRLF
 	cQy += "FROM " + CRLF
 	cQy += "	SC9990 C9 " + CRLF
@@ -463,23 +462,135 @@ user function C9DriveIn()
 return
 
 user function goDrvIn(cAliasTemp)
-/*
-	local cUrl			:= "localhost:8080" // juk Criar parametro para estes enderecos
-	local cPath			:= "/rest/nexsolucoes/production_order"
-	local oRestClient	:= FWRest():New(cUrl) // https://tdn.totvs.com/display/public/framework/FWRest
-	local oJReq			:= JsonObject():New()
-	local cToken		:= BEARER_TOKEN
-*/
+	local cFilial		:= ""
+	local cPedido		:= ""
+	local cCliente		:= ""
+	local cLoja			:= ""
+	local dDtentrega	:= sToD("20000101")
+	local cItem			:= ""
+	local cSequen		:= ""
+	local cProduto		:= ""
+	local cDescri		:= ""
+	local cArmazem		:= ""
+	local cLote			:= ""
+	local cEndereco		:= ""
+	local cNumseri		:= ""
+	local nQtdLib		:= -1
 
+	local oDtEntrega	:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
+	local aDtEntregas	:= {}
+	local oCliente		:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
+	local aClientes		:= {}
+	local oPedido		:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
+	local aPedidos		:= {}
+	local oItem			:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
+	local aItens		:= {}
+/*
+	oItem['code'] := "zero"
+	aAdd(aItens, oItem)
+	oPedido['items'] := aItens
+	aAdd(aPedidos, oPedido)
+	oCliente['orders'] := aPedidos
+	aAdd(aClientes, oCliente)
+	oDtEntrega['clients'] := aClientes
+*/
 	conOut("goDrvIn() INICIO" + NOME_FONTE)
 
 	(cAliasTemp)->(dbGoTop())
 	while !(cAliasTemp)->(eOF())
-		if (cAliasTemp)->SEL_OK != "  "
-			conOut("Enviando dados de " + (cAliasTemp)->NUMSERI)
+		if (cAliasTemp)->SEL_OK == "  "
+			(cAliasTemp)->(dbSkip())
+			loop
 		endIf
+
+		if dDtentrega != (cAliasTemp)->DTENTREGA
+			if 0 < len(aClientes)
+				oDtEntrega['clients'] := aClientes
+			endIf
+			if 0 < len(oDtEntrega)
+				aAdd(aDtEntregas, oDtEntrega)
+			endIf
+			//novo json de dtEntrega
+			oDtEntrega := JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
+			aClientes := {}
+		endIf
+
+		if cCliente != (cAliasTemp)->C9_CLIENTE
+			if 0 < len(aPedidos)
+				oCliente['orders'] := aPedidos
+			endIf
+			if 0 < len(oCliente)
+				aAdd(aClientes, oCliente)
+			endIf
+			//novo json de cliente
+			oCliente := JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
+			aPedidos := {}
+
+			oCliente['code'] := (cAliasTemp)->C9_ITEM + (cAliasTemp)->C9_SEQUEN + (cAliasTemp)->C9_PRODUTO
+			oCliente['address'] := "Rua dos blabla bla"
+			oCliente['country'] := "Paraguay"
+			oCliente['client_name'] := "Cliente001"
+		endIf
+
+		if cPedido != (cAliasTemp)->C9_PEDIDO
+			if 0 < len(aItens)
+				oPedido['items'] := aItens
+			endIf
+			if 0 < len(oPedido)
+				aAdd(aPedidos, oPedido)
+			endIf
+			//novo json de pedido
+			oPedido := JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
+			aItens := {}
+
+			oPedido['code'] := (cAliasTemp)->C9_PEDIDO
+		endIf
+
+		//novo json de itemSequencia1
+		oItem := JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
+		oItem['code'] := (cAliasTemp)->C9_PRODUTO
+		oItem['description'] := (cAliasTemp)->B1_DESC
+		oItem['units'] := (cAliasTemp)->C9_QTDLIB
+		aAdd(aItens, oItem)
+
+
+		cFilial		:= (cAliasTemp)->C9_FILIAL
+		cPedido		:= (cAliasTemp)->C9_PEDIDO
+		cCliente	:= (cAliasTemp)->C9_CLIENTE
+		cLoja		:= (cAliasTemp)->C9_LOJA
+		dDtentrega	:= (cAliasTemp)->DTENTREGA
+		cItem		:= (cAliasTemp)->C9_ITEM
+		cSequen		:= (cAliasTemp)->C9_SEQUEN
+		cProduto	:= (cAliasTemp)->C9_PRODUTO
+		cDescri		:= (cAliasTemp)->B1_DESC
+		cArmazem	:= (cAliasTemp)->C9_LOCAL
+		cLote		:= (cAliasTemp)->C9_LOTECTL
+		cEndereco	:= (cAliasTemp)->ENDERECO
+		cNumseri	:= (cAliasTemp)->NUMSERI
+		nQtdLib		:= (cAliasTemp)->C9_QTDLIB
 		(cAliasTemp)->(dbSkip())
 	endDo
+
+
+
+
+	oPedido['items'] := aItens
+	aAdd(aPedidos, oPedido)
+	oCliente['orders'] := aPedidos
+	aAdd(aClientes, oCliente)
+	oDtEntrega['clients'] := aClientes
+
+
+
+	showLog(VarInfo("oDtEntrega:ToJson()", oDtEntrega:ToJson(), /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
 	conOut("goDrvIn() FIM" + NOME_FONTE)
 return
 
+/*
+	local cUrl			:= "https://external.driv.in/api/external/v2" // juk Criar parametro para estes enderecos
+	local cPathGetDt	:= "/scenarios?date=2021-10-14"
+	local cPathPostO	:= "/orders?schema_code={{schema_code}}"
+	local oGetData		:= FWRest():New(cUrl) // https://tdn.totvs.com/display/public/framework/FWRest
+	local oJReq			:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
+	local cToken		:= BEARER_TOKEN
+*/
