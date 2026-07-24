@@ -398,7 +398,7 @@ user function C9DriveIn()
 	cQy += "	C9_PEDIDO, " + CRLF
 	cQy += "	C9_CLIENTE, " + CRLF
 	cQy += "	C9_LOJA, " + CRLF
-	cQy += "	C5_FECENT AS DTENTREGA, " + CRLF
+	cQy += "	C9_DATENT AS DTENTREGA, " + CRLF
 	cQy += "	C9_ITEM, " + CRLF
 	cQy += "	C9_SEQUEN, " + CRLF
 	cQy += "	C9_PRODUTO, " + CRLF
@@ -410,7 +410,7 @@ user function C9DriveIn()
 	cQy += "		WHEN TRIM(C9_NUMSERI) = '' THEN DC_NUMSERI ELSE C9_NUMSERI " + CRLF
 	cQy += "	END AS NUMSERI, " + CRLF
 	cQy += "	C9_QTDLIB, " + CRLF
-	cQy += "	C5_FECENT + C9_CLIENTE + C9_PEDIDO + C9_ITEM + C9_SEQUEN AS REC, " + CRLF
+	cQy += "	C9_DATENT + C9_CLIENTE + C9_PEDIDO + C9_ITEM + C9_SEQUEN AS REC, " + CRLF
 	cQy += "	'' AS SEL_OK " + CRLF
 	cQy += "FROM " + CRLF
 	cQy += "	SC9990 C9 " + CRLF
@@ -466,7 +466,7 @@ user function goDrvIn(cAliasTemp)
 	local cPedido		:= ""
 	local cCliente		:= ""
 	local cLoja			:= ""
-	local dDtentrega	:= sToD("20000101")
+	local dDtentrega	:= sToD("19941103")
 	local cItem			:= ""
 	local cSequen		:= ""
 	local cProduto		:= ""
@@ -485,7 +485,8 @@ user function goDrvIn(cAliasTemp)
 	local aPedidos		:= {}
 	local oItem			:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
 	local aItens		:= {}
-/*
+	local nI
+
 	oItem['code'] := "zero"
 	aAdd(aItens, oItem)
 	oPedido['items'] := aItens
@@ -493,7 +494,7 @@ user function goDrvIn(cAliasTemp)
 	oCliente['orders'] := aPedidos
 	aAdd(aClientes, oCliente)
 	oDtEntrega['clients'] := aClientes
-*/
+
 	conOut("goDrvIn() INICIO" + NOME_FONTE)
 
 	(cAliasTemp)->(dbGoTop())
@@ -502,43 +503,11 @@ user function goDrvIn(cAliasTemp)
 			(cAliasTemp)->(dbSkip())
 			loop
 		endIf
-
-		if dDtentrega != (cAliasTemp)->DTENTREGA
-			if 0 < len(aClientes)
-				oDtEntrega['clients'] := aClientes
-			endIf
-			if 0 < len(oDtEntrega)
-				aAdd(aDtEntregas, oDtEntrega)
-			endIf
-			//novo json de dtEntrega
-			oDtEntrega := JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
-			aClientes := {}
-		endIf
-
-		if cCliente != (cAliasTemp)->C9_CLIENTE
-			if 0 < len(aPedidos)
-				oCliente['orders'] := aPedidos
-			endIf
-			if 0 < len(oCliente)
-				aAdd(aClientes, oCliente)
-			endIf
-			//novo json de cliente
-			oCliente := JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
-			aPedidos := {}
-
-			oCliente['code'] := (cAliasTemp)->C9_ITEM + (cAliasTemp)->C9_SEQUEN + (cAliasTemp)->C9_PRODUTO
-			oCliente['address'] := "Rua dos blabla bla"
-			oCliente['country'] := "Paraguay"
-			oCliente['client_name'] := "Cliente001"
-		endIf
+		//msgAlert(dToC((cAliasTemp)->DTENTREGA) + " " + (cAliasTemp)->C9_CLIENTE + " " + (cAliasTemp)->C9_PEDIDO + " " + (cAliasTemp)->C9_ITEM + " " + (cAliasTemp)->C9_SEQUEN, NOME_FONTE)
 
 		if cPedido != (cAliasTemp)->C9_PEDIDO
-			if 0 < len(aItens)
-				oPedido['items'] := aItens
-			endIf
-			if 0 < len(oPedido)
-				aAdd(aPedidos, oPedido)
-			endIf
+			oPedido['items'] := aItens
+			aAdd(aPedidos, oPedido)
 			//novo json de pedido
 			oPedido := JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
 			aItens := {}
@@ -546,12 +515,54 @@ user function goDrvIn(cAliasTemp)
 			oPedido['code'] := (cAliasTemp)->C9_PEDIDO
 		endIf
 
+		if cCliente != (cAliasTemp)->C9_CLIENTE
+			oCliente['orders'] := aPedidos
+			aAdd(aClientes, oCliente)
+			//novo json de cliente
+			oCliente := JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
+			aPedidos := {}
+
+			oCliente['code'] := (cAliasTemp)->C9_CLIENTE
+			oCliente['address'] := "Rua dos blabla bla"
+			oCliente['country'] := "Paraguay"
+			oCliente['client_name'] := "Cliente001"
+		endIf
+
+		if dDtentrega != (cAliasTemp)->DTENTREGA
+			oDtEntrega['clients'] := aClientes
+			aAdd(aDtEntregas, oDtEntrega)
+			//novo json de dtEntrega
+			oDtEntrega := JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
+			aClientes := {}
+		endIf
+
 		//novo json de itemSequencia1
 		oItem := JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
-		oItem['code'] := (cAliasTemp)->C9_PRODUTO
+		oItem['code'] := (cAliasTemp)->C9_ITEM + (cAliasTemp)->C9_SEQUEN + (cAliasTemp)->C9_PRODUTO
 		oItem['description'] := (cAliasTemp)->B1_DESC
 		oItem['units'] := (cAliasTemp)->C9_QTDLIB
 		aAdd(aItens, oItem)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 		cFilial		:= (cAliasTemp)->C9_FILIAL
@@ -579,10 +590,11 @@ user function goDrvIn(cAliasTemp)
 	oCliente['orders'] := aPedidos
 	aAdd(aClientes, oCliente)
 	oDtEntrega['clients'] := aClientes
+	aAdd(aDtEntregas, oDtEntrega)
 
-
-
-	showLog(VarInfo("oDtEntrega:ToJson()", oDtEntrega:ToJson(), /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
+	for nI := 1 to len(aDtEntregas)
+		showLog(VarInfo("aDtEntregas[" + cValToChar(nI) + "]:ToJson()", aDtEntregas[nI]:ToJson(), /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
+	next nI
 	conOut("goDrvIn() FIM" + NOME_FONTE)
 return
 
