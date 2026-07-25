@@ -1,8 +1,9 @@
 #INCLUDE "protheus.ch"
 #INCLUDE "RWMAKE.CH"
 
-#DEFINE NOME_FONTE "NEXACD.PRW"
-#DEFINE BEARER_TOKEN ""
+#DEFINE NOME_FONTE		"NEXACD.PRW"
+#DEFINE BEARER_TOKEN	""
+#DEFINE API_KEY			"647fbc3a-9e8d-49b8-ba28-b5ec3d72b673"
 
 user function aptProd(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cSerie, cTags)
 	local aVetor
@@ -270,10 +271,6 @@ user function opToSegel()
 	local cRet			:= ""
 	local cToken		:= BEARER_TOKEN
 
-
-
-	conOut("opToSegel() INICIO" + NOME_FONTE)
-
 	dbSelectArea("SB1")
 	dbSetOrder(1) // B1_FILIAL + B1_COD
 
@@ -318,7 +315,6 @@ user function opToSegel()
 	oJReq["qtd"] := SC2->C2_QUANT
 	oJReq["familia"] := "teste" // juk precisa descobrir o nome do campo customizado que já existe na SB1 da Suenolar
 
-
 	Aadd(aHeader, "Content-Type: application/json")
 	Aadd(aHeader, "Authorization: Bearer " + cToken)
 	//Aadd(aHeader, "Authorization: Basic " + Encode64("app01:fTdUlDgdQQ4MRQhLahykiKhON6k97Zfly5SV6fwpa5zCE"))
@@ -359,6 +355,7 @@ user function C9DriveIn()
 		{"C9_PEDIDO",		"Pedido",			tamSX3("C9_PEDIDO")[3],		tamSX3("C9_PEDIDO")[1],		tamSX3("C9_PEDIDO")[2],		""},;
 		{"C9_CLIENTE",		"Cliente",			tamSX3("C9_CLIENTE")[3],	tamSX3("C9_CLIENTE")[1],	tamSX3("C9_CLIENTE")[2],	""},;
 		{"C9_LOJA",			"Loja",				tamSX3("C9_LOJA")[3],		tamSX3("C9_LOJA")[1],		tamSX3("C9_LOJA")[2],		""},;
+		{"A1_NOME",			"Cli Nome",			tamSX3("A1_NOME")[3],		tamSX3("A1_NOME")[1],		tamSX3("A1_NOME")[2],		""},;
 		{"DTENTREGA",		"Entrega",			"D",						8,							0,							""},;
 		{"C9_ITEM",			"Item",				tamSX3("C9_ITEM")[3],		tamSX3("C9_ITEM")[1],		tamSX3("C9_ITEM")[2],		""},;
 		{"C9_SEQUEN",		"Sequencia",		tamSX3("C9_SEQUEN")[3],		tamSX3("C9_SEQUEN")[1],		tamSX3("C9_SEQUEN")[2],		""},;
@@ -366,9 +363,13 @@ user function C9DriveIn()
 		{"B1_DESC",			"Descrição",		tamSX3("B1_DESC")[3],		tamSX3("B1_DESC")[1],		tamSX3("B1_DESC")[2],		""},;
 		{"C9_LOCAL",		"Armazém",			tamSX3("C9_LOCAL")[3],		tamSX3("C9_LOCAL")[1],		tamSX3("C9_LOCAL")[2],		""},;
 		{"C9_LOTECTL",		"Lote",				tamSX3("C9_LOTECTL")[3],	tamSX3("C9_LOTECTL")[1],	tamSX3("C9_LOTECTL")[2],	""},;
-		{"ENDERECO",		"Endereço",			tamSX3("DC_LOCALIZ")[3],	tamSX3("DC_LOCALIZ")[1],	tamSX3("DC_LOCALIZ")[2],	""},;
+		{"PRD_ENDERE",		"Prod Endereço",	tamSX3("DC_LOCALIZ")[3],	tamSX3("DC_LOCALIZ")[1],	tamSX3("DC_LOCALIZ")[2],	""},;
+		{"CLI_ENDERE",		"Cli Endereço",		tamSX3("A1_ENDREC")[3],		tamSX3("A1_ENDREC")[1],		tamSX3("A1_ENDREC")[2],		""},;
 		{"NUMSERI",			"Num Serie",		tamSX3("C9_NUMSERI")[3],	tamSX3("C9_NUMSERI")[1],	tamSX3("C9_NUMSERI")[2],	""},;
 		{"C9_QTDLIB",		"Quant. Lib",		tamSX3("C9_QTDLIB")[3],		tamSX3("C9_QTDLIB")[1],		tamSX3("C9_QTDLIB")[2],		""},;
+		{"A1_MUN",			"Ciudad",			tamSX3("A1_MUN")[3],		tamSX3("A1_MUN")[1],		tamSX3("A1_MUN")[2],		""},;
+		{"YA_DESCR",		"Pais",				tamSX3("YA_DESCR")[3],		tamSX3("YA_DESCR")[1],		tamSX3("YA_DESCR")[2],		""},;
+		{"VOLUME",			"Volume",			tamSX3("B1_M3")[3],			tamSX3("B1_M3")[1],			tamSX3("B1_M3")[2],			""},;
 		{"REC",				"Rec",				"C",						nTamIdx,					0,							""},;
 		{"SEL_OK",			"Sel",				"C",						2,							0,							""}}
 	//	 Campo				Título				Típo						Tamanho						Decimais					Mascara
@@ -398,6 +399,7 @@ user function C9DriveIn()
 	cQy += "	C9_PEDIDO, " + CRLF
 	cQy += "	C9_CLIENTE, " + CRLF
 	cQy += "	C9_LOJA, " + CRLF
+	cQy += "	A1_NOME, " + CRLF
 	cQy += "	C9_DATENT AS DTENTREGA, " + CRLF
 	cQy += "	C9_ITEM, " + CRLF
 	cQy += "	C9_SEQUEN, " + CRLF
@@ -405,11 +407,15 @@ user function C9DriveIn()
 	cQy += "	B1_DESC, " + CRLF
 	cQy += "	C9_LOCAL, " + CRLF
 	cQy += "	C9_LOTECTL, " + CRLF
-	cQy += "	COALESCE(DC_LOCALIZ, '') AS ENDERECO, " + CRLF
+	cQy += "	COALESCE(DC_LOCALIZ, '') AS PRD_ENDERE, " + CRLF
+	cQy += "	A1_END AS CLI_ENDERE, " + CRLF
+	cQy += "	A1_MUN, " + CRLF
+	cQy += "	YA_DESCR, " + CRLF
 	cQy += "	CASE " + CRLF
 	cQy += "		WHEN TRIM(C9_NUMSERI) = '' THEN DC_NUMSERI ELSE C9_NUMSERI " + CRLF
 	cQy += "	END AS NUMSERI, " + CRLF
 	cQy += "	C9_QTDLIB, " + CRLF
+	cQy += "	C9_QTDLIB * B1_M3 AS VOLUME, " + CRLF
 	cQy += "	C9_DATENT + C9_CLIENTE + C9_PEDIDO + C9_ITEM + C9_SEQUEN AS REC, " + CRLF
 	cQy += "	'' AS SEL_OK " + CRLF
 	cQy += "FROM " + CRLF
@@ -424,6 +430,16 @@ user function C9DriveIn()
 	cQy += "		ON " + fwJoinFilial("SC9", "SB1", "C9", "B1", .T., , .T.) + " " + CRLF // https://tdn.totvs.com/display/public/framework/FWJoinFilial
 	cQy += "		AND B1_COD = C9_PRODUTO " + CRLF
 	cQy += "		AND B1.D_E_L_E_T_ = '' " + CRLF
+	cQy += "	INNER JOIN " + CRLF
+	cQy += "		SA1990 A1 " + CRLF
+	cQy += "		ON A1.A1_FILIAL = '  ' " + CRLF
+	cQy += "		AND A1_COD = C9_CLIENTE " + CRLF
+	cQy += "		AND A1.D_E_L_E_T_ = '' " + CRLF
+	cQy += "	INNER JOIN " + CRLF
+	cQy += "		SYA990 YA " + CRLF
+	cQy += "		ON YA.YA_FILIAL = '  ' " + CRLF
+	cQy += "		AND YA_CODGI = A1_PAIS " + CRLF
+	cQy += "		AND YA.D_E_L_E_T_ = '' " + CRLF
 	cQy += "	LEFT JOIN " + CRLF
 	cQy += "		SDC990 DC " + CRLF
 	cQy += "		ON " + fwJoinFilial("SC9", "SDC", "C9", "DC", .T., , .T.) + " " + CRLF
@@ -440,7 +456,7 @@ user function C9DriveIn()
 	cQy += "	C9_PEDIDO BETWEEN '" + cPedidoDe + "' AND '" + cPedidoAte + "' " + CRLF
 	cQy += "	AND C9_CLIENTE BETWEEN '" + cCliDe + "' AND '" + cCliAte + "' " + CRLF
 	cQy += "	AND C9_LOJA BETWEEN '" + cLojaDe + "' AND '" + cLojaAte + "' " + CRLF
-	cQy += "	AND C5_FECENT BETWEEN '" + dToS(dDataDe) + "' AND '" + dToS(dDataAte) + "' " + CRLF
+	cQy += "	AND C9_DATENT BETWEEN '" + dToS(dDataDe) + "' AND '" + dToS(dDataAte) + "' " + CRLF
 	cQy += "	AND C9_PRODUTO BETWEEN '" + cProdDe + "' AND '" + cProdAte + "' " + CRLF
 	cQy += "	AND C9_BLEST = '' " + CRLF
 	cQy += "	AND C9_BLCRED = '' " + CRLF
@@ -462,7 +478,6 @@ user function C9DriveIn()
 return
 
 user function goDrvIn(cAliasTemp)
-	local cFilial		:= ""
 	local cPedido		:= ""
 	local cCliente		:= ""
 	local cLoja			:= ""
@@ -478,7 +493,7 @@ user function goDrvIn(cAliasTemp)
 	local nQtdLib		:= -1
 
 	local oDtEntrega	:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
-	local aDtEntregas	:= {}
+	local aDtEntrJson	:= {}
 	local oCliente		:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
 	local aClientes		:= {}
 	local oPedido		:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
@@ -486,6 +501,7 @@ user function goDrvIn(cAliasTemp)
 	local oItem			:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
 	local aItens		:= {}
 	local nI
+	local cTokenDt
 
 	oItem['code'] := "zero"
 	aAdd(aItens, oItem)
@@ -523,14 +539,16 @@ user function goDrvIn(cAliasTemp)
 			aPedidos := {}
 
 			oCliente['code'] := (cAliasTemp)->C9_CLIENTE
-			oCliente['address'] := "Rua dos blabla bla"
-			oCliente['country'] := "Paraguay"
-			oCliente['client_name'] := "Cliente001"
+			oCliente['address'] := (cAliasTemp)->CLI_ENDERE
+			oCliente['city'] := (cAliasTemp)->A1_MUN
+			oCliente['country'] := (cAliasTemp)->YA_DESCR
+			oCliente['name'] := (cAliasTemp)->A1_NOME
+			oCliente['client_name'] := (cAliasTemp)->A1_NOME
 		endIf
 
 		if dDtentrega != (cAliasTemp)->DTENTREGA
 			oDtEntrega['clients'] := aClientes
-			aAdd(aDtEntregas, oDtEntrega)
+			aAdd(aDtEntrJson, {dDtentrega, oDtEntrega})
 			//novo json de dtEntrega
 			oDtEntrega := JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
 			aClientes := {}
@@ -538,34 +556,14 @@ user function goDrvIn(cAliasTemp)
 
 		//novo json de itemSequencia1
 		oItem := JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
-		oItem['code'] := (cAliasTemp)->C9_ITEM + (cAliasTemp)->C9_SEQUEN + (cAliasTemp)->C9_PRODUTO
+		oItem['code'] := (cAliasTemp)->C9_PRODUTO
+		oItem['custom_1'] := (cAliasTemp)->C9_ITEM
+		oItem['custom_2'] := (cAliasTemp)->C9_SEQUEN
 		oItem['description'] := (cAliasTemp)->B1_DESC
 		oItem['units'] := (cAliasTemp)->C9_QTDLIB
+		oItem['units_1'] := Posicione("SB1", 1, fwXFilial("SB1") + (cAliasTemp)->C9_PRODUTO, 'allTrim(str(SB1->B1_M3, tamSX3("B1_M3")[1], tamSX3("B1_M3")[2]))')
 		aAdd(aItens, oItem)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-		cFilial		:= (cAliasTemp)->C9_FILIAL
 		cPedido		:= (cAliasTemp)->C9_PEDIDO
 		cCliente	:= (cAliasTemp)->C9_CLIENTE
 		cLoja		:= (cAliasTemp)->C9_LOJA
@@ -576,31 +574,100 @@ user function goDrvIn(cAliasTemp)
 		cDescri		:= (cAliasTemp)->B1_DESC
 		cArmazem	:= (cAliasTemp)->C9_LOCAL
 		cLote		:= (cAliasTemp)->C9_LOTECTL
-		cEndereco	:= (cAliasTemp)->ENDERECO
+		cEndereco	:= (cAliasTemp)->PRD_ENDERE
 		cNumseri	:= (cAliasTemp)->NUMSERI
 		nQtdLib		:= (cAliasTemp)->C9_QTDLIB
 		(cAliasTemp)->(dbSkip())
 	endDo
-
-
-
 
 	oPedido['items'] := aItens
 	aAdd(aPedidos, oPedido)
 	oCliente['orders'] := aPedidos
 	aAdd(aClientes, oCliente)
 	oDtEntrega['clients'] := aClientes
-	aAdd(aDtEntregas, oDtEntrega)
+	aAdd(aDtEntrJson, {dDtentrega, oDtEntrega})
 
-	for nI := 1 to len(aDtEntregas)
-		showLog(VarInfo("aDtEntregas[" + cValToChar(nI) + "]:ToJson()", aDtEntregas[nI]:ToJson(), /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
+	for nI := 2 to len(aDtEntrJson)
+		showLog("Enviar POST de:" + CRLF + VarInfo("Data de entrega " + cValToChar(nI) + " de " + cValToChar(len(aDtEntrJson)) + CRLF, aDtEntrJson[nI, 2]:ToJson(), /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
+		cTokenDt := getTokenDt(aDtEntrJson[nI, 1])
+		msgAlert("Data: " + dToC(aDtEntrJson[nI, 1]) + " Token: " + cTokenDt)
+		if !empty(cTokenDt)
+			postPedido(cTokenDt, aDtEntrJson[nI, 2])
+		endIf
 	next nI
 	conOut("goDrvIn() FIM" + NOME_FONTE)
 return
 
+static function getTokenDt(dDtentrega)
+	local cDtEntrega	:= dToS(dDtentrega)
+	local cUrl			:= "https://external-qa.driv.in/api/external/v2" // juk Criar parametro para estes enderecos
+	local cPath			:= "/scenarios?date=" + subStr(cDtEntrega, 1, 4) + "-" + subStr(cDtEntrega, 5, 2) + "-" + subStr(cDtEntrega, 7, 2) // exemplo "/scenarios?date=2026-07-25"
+	local cApiKey		:= API_KEY
+	local oRestClient	:= FWRest():New(cUrl) // https://tdn.totvs.com/display/public/framework/FWRest
+	local aHeader		:= {}
+	local lRetOk
+	local cRet
+	local cErro
+	local oJResposta	:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
+
+	Aadd(aHeader, "X-API-Key: " + cApiKey)
+	Aadd(aHeader, "Content-Type: application/json")
+	oRestClient:SetPath(cPath)
+	lRetOk := oRestClient:get(aHeader)
+	if lRetOk
+		cRet := oRestClient:getResult()
+	else
+		cRet := oRestClient:getLastError()
+		msgAlert(cRet, NOME_FONTE)
+		return ""
+	endIf
+	cErro := oJResposta:FromJSON(cRet)
+	if !empty(cErro)
+		msgAlert(cErro, NOME_FONTE)
+		return ""
+	endIf
+	if len(oJResposta['response']) == 0
+		msgAlert("len(oJResposta['response']) == 0", NOME_FONTE)
+		msgAlert(cErro, NOME_FONTE)
+		return ""
+	endIf
+return oJResposta['response'][1]['token']
+
+static function postPedido(cToken, oDtEntrega)
+	local cUrl			:= "https://external-qa.driv.in/api/external/v2" // juk Criar parametro para estes enderecos
+	local cPath			:= "/orders?token=" + cToken
+	local cApiKey		:= API_KEY
+	local oRestClient	:= FWRest():New(cUrl) // https://tdn.totvs.com/display/public/framework/FWRest
+	local aHeader		:= {}
+	local lRetOk
+	local cRet
+	local cErro
+	local oJResposta	:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
+
+	Aadd(aHeader, "X-API-Key: " + cApiKey)
+	Aadd(aHeader, "Content-Type: application/json")
+	oRestClient:SetPath(cPath)
+	oRestClient:SetPostParams(oDtEntrega:ToJson())
+	lRetOk := oRestClient:post(aHeader)
+	if lRetOk
+		cRet := oRestClient:getResult()
+		msgAlert(cRet, NOME_FONTE)
+	else
+		cRet := oRestClient:getLastError()
+		msgAlert("ERRO no POST: " + cRet, NOME_FONTE)
+		return nil
+	endIf
+	cErro := oJResposta:FromJSON(cRet)
+	if !empty(cErro)
+		msgAlert("ERRO na leitura do json retornado: " + cErro, NOME_FONTE)
+		return nil
+	endIf
+
+return
+
 /*
 	local cUrl			:= "https://external.driv.in/api/external/v2" // juk Criar parametro para estes enderecos
-	local cPathGetDt	:= "/scenarios?date=2021-10-14"
+	local cPath	:= "/scenarios?date=2021-10-14"
 	local cPathPostO	:= "/orders?schema_code={{schema_code}}"
 	local oGetData		:= FWRest():New(cUrl) // https://tdn.totvs.com/display/public/framework/FWRest
 	local oJReq			:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
