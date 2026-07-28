@@ -356,7 +356,7 @@ user function C9DriveIn()
 		{"C9_CLIENTE",		"Cliente",			tamSX3("C9_CLIENTE")[3],	tamSX3("C9_CLIENTE")[1],	tamSX3("C9_CLIENTE")[2],	""},;
 		{"C9_LOJA",			"Loja",				tamSX3("C9_LOJA")[3],		tamSX3("C9_LOJA")[1],		tamSX3("C9_LOJA")[2],		""},;
 		{"A1_NOME",			"Cli Nome",			tamSX3("A1_NOME")[3],		tamSX3("A1_NOME")[1],		tamSX3("A1_NOME")[2],		""},;
-		{"DTENTREGA",		"Entrega",			"D",						8,							0,							""},;
+		{"C9_DATENT",		"Entrega",			tamSX3("C9_DATENT")[3],		tamSX3("C9_DATENT")[1],		tamSX3("C9_DATENT")[2],		""},;
 		{"C9_ITEM",			"Item",				tamSX3("C9_ITEM")[3],		tamSX3("C9_ITEM")[1],		tamSX3("C9_ITEM")[2],		""},;
 		{"C9_SEQUEN",		"Sequencia",		tamSX3("C9_SEQUEN")[3],		tamSX3("C9_SEQUEN")[1],		tamSX3("C9_SEQUEN")[2],		""},;
 		{"C9_PRODUTO",		"Produto",			tamSX3("C9_PRODUTO")[3],	tamSX3("C9_PRODUTO")[1],	tamSX3("C9_PRODUTO")[2],	""},;
@@ -370,6 +370,7 @@ user function C9DriveIn()
 		{"A1_MUN",			"Ciudad",			tamSX3("A1_MUN")[3],		tamSX3("A1_MUN")[1],		tamSX3("A1_MUN")[2],		""},;
 		{"YA_DESCR",		"Pais",				tamSX3("YA_DESCR")[3],		tamSX3("YA_DESCR")[1],		tamSX3("YA_DESCR")[2],		""},;
 		{"VOLUME",			"Volume",			tamSX3("B1_M3")[3],			tamSX3("B1_M3")[1],			tamSX3("B1_M3")[2],			""},;
+		{"COMUNIC",			"Com. Status",		"N",						2,								0,							""},;
 		{"REC",				"Rec",				"C",						nTamIdx,					0,							""},;
 		{"SEL_OK",			"Sel",				"C",						2,							0,							""}}
 	//	 Campo				Título				Típo						Tamanho						Decimais					Mascara
@@ -400,7 +401,7 @@ user function C9DriveIn()
 	cQy += "	C9_CLIENTE, " + CRLF
 	cQy += "	C9_LOJA, " + CRLF
 	cQy += "	A1_NOME, " + CRLF
-	cQy += "	C9_DATENT AS DTENTREGA, " + CRLF
+	cQy += "	C9_DATENT, " + CRLF
 	cQy += "	C9_ITEM, " + CRLF
 	cQy += "	C9_SEQUEN, " + CRLF
 	cQy += "	C9_PRODUTO, " + CRLF
@@ -416,6 +417,12 @@ user function C9DriveIn()
 	cQy += "	END AS NUMSERI, " + CRLF
 	cQy += "	C9_QTDLIB, " + CRLF
 	cQy += "	C9_QTDLIB * B1_M3 AS VOLUME, " + CRLF
+	cQy += "	CASE " + CRLF
+	cQy += "		WHEN C9_ZCENARI = '' AND COALESCE(C9_ZDRIVIN, '') = '' THEN 1 " + CRLF
+	cQy += "		WHEN C9_ZCENARI <> '' AND COALESCE(C9_ZDRIVIN, '') = '' THEN 2 " + CRLF
+	cQy += "		WHEN C9_ZCENARI <> '' AND COALESCE(C9_ZDRIVIN, '') <> '' THEN 3 " + CRLF
+	cQy += "		WHEN C9_ZCENARI = '' AND COALESCE(C9_ZDRIVIN, '') <> '' THEN 4 " + CRLF
+	cQy += "	END AS COMUNIC, " + CRLF
 	cQy += "	C9_DATENT + C9_CLIENTE + C9_PEDIDO + C9_ITEM + C9_SEQUEN AS REC, " + CRLF
 	cQy += "	'' AS SEL_OK " + CRLF
 	cQy += "FROM " + CRLF
@@ -501,6 +508,7 @@ user function goDrvIn(cAliasTemp)
 	local oItem			:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
 	local aItens		:= {}
 	local nI
+	local aTokensDt
 	local cTokenDt
 
 	oItem['code'] := "zero"
@@ -519,8 +527,7 @@ user function goDrvIn(cAliasTemp)
 			(cAliasTemp)->(dbSkip())
 			loop
 		endIf
-		//msgAlert(dToC((cAliasTemp)->DTENTREGA) + " " + (cAliasTemp)->C9_CLIENTE + " " + (cAliasTemp)->C9_PEDIDO + " " + (cAliasTemp)->C9_ITEM + " " + (cAliasTemp)->C9_SEQUEN, NOME_FONTE)
-
+		
 		if cPedido != (cAliasTemp)->C9_PEDIDO
 			oPedido['items'] := aItens
 			aAdd(aPedidos, oPedido)
@@ -546,7 +553,7 @@ user function goDrvIn(cAliasTemp)
 			oCliente['client_name'] := (cAliasTemp)->A1_NOME
 		endIf
 
-		if dDtentrega != (cAliasTemp)->DTENTREGA
+		if dDtentrega != (cAliasTemp)->C9_DATENT
 			oDtEntrega['clients'] := aClientes
 			aAdd(aDtEntrJson, {dDtentrega, oDtEntrega})
 			//novo json de dtEntrega
@@ -556,18 +563,16 @@ user function goDrvIn(cAliasTemp)
 
 		//novo json de itemSequencia1
 		oItem := JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
-		oItem['code'] := (cAliasTemp)->C9_PRODUTO
-		oItem['custom_1'] := (cAliasTemp)->C9_ITEM
-		oItem['custom_2'] := (cAliasTemp)->C9_SEQUEN
+		oItem['code'] := (cAliasTemp)->C9_ITEM + "-" + (cAliasTemp)->C9_SEQUEN + "-" + (cAliasTemp)->C9_PRODUTO
 		oItem['description'] := (cAliasTemp)->B1_DESC
 		oItem['units'] := (cAliasTemp)->C9_QTDLIB
-		oItem['units_1'] := Posicione("SB1", 1, fwXFilial("SB1") + (cAliasTemp)->C9_PRODUTO, 'allTrim(str(SB1->B1_M3, tamSX3("B1_M3")[1], tamSX3("B1_M3")[2]))')
+		oItem['units_2'] := Posicione("SB1", 1, fwXFilial("SB1") + (cAliasTemp)->C9_PRODUTO, 'allTrim(str(SB1->B1_M3, tamSX3("B1_M3")[1], tamSX3("B1_M3")[2]))')
 		aAdd(aItens, oItem)
 
 		cPedido		:= (cAliasTemp)->C9_PEDIDO
 		cCliente	:= (cAliasTemp)->C9_CLIENTE
 		cLoja		:= (cAliasTemp)->C9_LOJA
-		dDtentrega	:= (cAliasTemp)->DTENTREGA
+		dDtentrega	:= (cAliasTemp)->C9_DATENT
 		cItem		:= (cAliasTemp)->C9_ITEM
 		cSequen		:= (cAliasTemp)->C9_SEQUEN
 		cProduto	:= (cAliasTemp)->C9_PRODUTO
@@ -589,13 +594,124 @@ user function goDrvIn(cAliasTemp)
 
 	for nI := 2 to len(aDtEntrJson)
 		showLog("Enviar POST de:" + CRLF + VarInfo("Data de entrega " + cValToChar(nI) + " de " + cValToChar(len(aDtEntrJson)) + CRLF, aDtEntrJson[nI, 2]:ToJson(), /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
-		cTokenDt := getTokenDt(aDtEntrJson[nI, 1])
+		aTokensDt := getTokenDt(aDtEntrJson[nI, 1])
+		cTokenDt := escolheTk(aTokensDt)
 		msgAlert("Data: " + dToC(aDtEntrJson[nI, 1]) + " Token: " + cTokenDt)
-		if !empty(cTokenDt)
+		if iif(!empty(cTokenDt), msgYesNo("Confirma o envio do POST?", NOME_FONTE), .F.)
 			postPedido(cTokenDt, aDtEntrJson[nI, 2])
+		else
+			msgAlert("Cancelado o envio do POST token:  " + cTokenDt, NOME_FONTE)
 		endIf
 	next nI
 	conOut("goDrvIn() FIM" + NOME_FONTE)
+return
+
+static function escolheTk(aTokensDt)
+	local aDados		:= {}
+	local nI
+	local oDlg
+	local oBrowTk
+	local oOk			:= LoadBitmap(GetResources(), "LBOK") //CHECKED		//LBOK		//LBTIK
+	local oNo			:= LoadBitmap(GetResources(), "LBNO") //UNCHECKED	//LBNO
+	local cRet
+	local oBtnConfir
+	local cDia			:= subStr(aTokensDt[1]['deploy_date'], 9, 2) + "/" + subStr(aTokensDt[1]['deploy_date'], 6, 2) + "/" + subStr(aTokensDt[1]['deploy_date'], 1, 4)
+	
+	for nI := 1 to len(aTokensDt)
+		aAdd(aDados, {iif(nI == 1, .t., .f.), aTokensDt[nI]['description'], aTokensDt[nI]['schema_name'], aTokensDt[nI]['token']}) // copia os dados do array de json num array de dados
+	next nI
+
+	oDlg := MsDialog():New(;
+		20/*nTop*/, ;
+		20/*nLeft*/, ;
+		500/*nBottom*/, ;
+		500/*nRight*/,;
+		"Escolha um cenário para as entregas do dia " + cDia /*cTitle*/, ;
+		/*cResName*/, ;
+		/*hResources*/, ;
+		/*.vbx.*/, ;
+		/*nStyle*/,;
+		/*nClrText*/, ;
+		/*nClrBack*/, ;
+		/*oBrush*/, ;
+		/*oWnd*/, ;
+		/*.pixel.*/,;
+		/*oIco*/, ;
+		/*oFont*/ , ;
+		/*.status.*/)
+
+	oBrowTk := TWBrowse():New(;
+		10 /*nRow*/,;
+		10 /*nCol*/,;
+		300 /*nWidth*/,;
+		100 /*nHeight*/,;
+		/*bLine*/,;
+		{"Selecione", "Plan", "Schema", "Token"} /*aHeaders*/,;
+		/*aColSizes*/,;
+		oDlg /*oDlg*/,;
+		/*cField*/,;
+		/*uValue1*/,;
+		/*uValue2*/,;
+		/*bChange*/,;
+		{|nRow,nCol,nFlags| uniqueSel(oBrowTk)} /*bLDblClick bloco de código para o evento de duplo clique*/,;
+		/*bRClick*/,;
+		/*oFont*/,;
+		/*oCursor*/,;
+		/*nClrFore*/,;
+		/*nClrBack*/,;
+		/*cMsg*/,;
+		.F. /*uParam20 para compatibilidade*/,;
+		/*cAlias*/,;
+		.T. /*lPixel*/,;
+		/*bWhen*/,;
+		/*uParam24*/,;
+		/*bValid*/,;
+		/*lHScroll*/,;
+		/*lVScroll*/) // https://tdn.totvs.com/display/tec/TWBrowse		https://tdn.totvs.com/display/tec/TCBrowse
+	
+	oBrowTk:SetArray(aDados)
+	oBrowTk:bLine := {|| {;
+		iif(aDados[oBrowTk:nAt,1],oOK,oNO), ;
+		aDados[oBrowTk:nAt,2], ;
+		aDados[oBrowTk:nAt,3], ;
+		aDados[oBrowTk:nAt,4], ;
+		}}
+	
+	oBtnConfir := TButton():New(;
+		110 /*nRow*/,;
+		230 /*nCol*/,;
+		"Confirma" /*cCaption*/,;
+		oDlg /*oWnd*/,;
+		{|| oDlg:end()}/*{uAction}*/,;
+		60 /*nWidth*/,;
+		15 /*nHeight*/,;
+		/*nHelpId*/,;
+		/*oFont*/,;
+		/*.default.*/,;
+		.T./*.pixel.*/,;
+		/*.design.*/,;
+		/*cMsg*/,;
+		/*.update.*/,;
+		{|| .T.} /*{WhenFunc}*/,;
+		/*{uValid}*/,;
+		/*.lCancel.*/)
+	
+	oDlg:Activate()
+
+	for nI := 1 to len(aDados)
+		if aDados[nI, 1]
+			return aDados[nI, 4]
+		endIf
+	next nI
+return
+
+static function uniqueSel(oBrowTk)
+	local nI
+	for nI := 1 to len(oBrowTk:aArray)
+		oBrowTk:aArray[nI,1] := .F.
+	next nI
+	oBrowTk:aArray[oBrowTk:nAt,1] := !oBrowTk:aArray[oBrowTk:nAt,1]
+	oBrowTk:refresh()
 return
 
 static function getTokenDt(dDtentrega)
@@ -631,7 +747,7 @@ static function getTokenDt(dDtentrega)
 		msgAlert(cErro, NOME_FONTE)
 		return ""
 	endIf
-return oJResposta['response'][1]['token']
+return oJResposta['response']
 
 static function postPedido(cToken, oDtEntrega)
 	local cUrl			:= "https://external-qa.driv.in/api/external/v2" // juk Criar parametro para estes enderecos

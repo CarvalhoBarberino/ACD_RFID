@@ -144,7 +144,7 @@ method New(aCampos, cAliasQuery, cCampoIndice, cCampoSel) class jukMarkBrowse
 	endIf
 	dbSelectArea(cAliasQuery)
 	(cAliasQuery)->(dbGoTop())
-	
+
 	::aCampos		:= aCampos
 	::cAliasQuery	:= cAliasQuery
 	::cAliasTemp	:= ""
@@ -282,10 +282,10 @@ method jukPlay() class jukMarkBrowse
 	aRotina := menuDef(::aRotinaIn)
 
 	//Criando a janela
-	DEFINE MSDIALOG oDlgMark TITLE 'TÃ­tulos encontratos' FROM 000, 000  TO aMsAdvSize[6], aMsAdvSize[5] COLORS 0, 16777215 PIXEL
+	DEFINE MSDIALOG oDlgMark TITLE "Liberações a enviar para DrivIn" FROM 000, 000  TO aMsAdvSize[6], aMsAdvSize[5] COLORS 0, 16777215 PIXEL
 	oPanGrid := tPanel():New(001, 001, '', oDlgMark, , , , RGB(000,000,000), RGB(254,254,254), (aMsAdvSize[5]/2)-1, (aMsAdvSize[6]/2 - 1))
 	oMarkBrowse:= FWMarkBrowse():New()
-	oMarkBrowse:SetDescription("Selecione o tÃ­tulo para alterar a data") //Titulo da Janela
+	oMarkBrowse:SetDescription("Selecione liberações a enviar") //Titulo da Janela
 	oMarkBrowse:SetAlias(::cAliasTemp)
 	oMarkBrowse:oBrowse:SetDBFFilter(.T.)
 	oMarkBrowse:oBrowse:SetUseFilter(.F.) //Habilita a utilizaÃ§Ã£o do filtro no Browse
@@ -298,6 +298,13 @@ method jukPlay() class jukMarkBrowse
 	oMarkBrowse:SetFieldMark(::cCampoSel)
 	oMarkBrowse:SetFontBrowse(oFontGrid)
 	oMarkBrowse:SetOwner(oPanGrid)
+
+	oMarkBrowse:AddLegend("C9_DATENT<date()", "BLUE", "Não apto a enviar")
+	oMarkBrowse:AddLegend("date()<=C9_DATENT.and.COMUNIC==1", "GREEN", "Apto a enviar") // 
+	oMarkBrowse:AddLegend("date()<=C9_DATENT.and.COMUNIC==2", "YELLOW", "Enviado")
+	oMarkBrowse:AddLegend("date()<=C9_DATENT.and.COMUNIC==3", "RED", "Enviado com erro")
+	oMarkBrowse:AddLegend("date()<=C9_DATENT.and.COMUNIC==4", "GREY", "Inconsistencia")
+
 	oMarkBrowse:SetColumns(aColunas)
 	oMarkBrowse:Activate()
 	ACTIVATE MsDialog oDlgMark CENTERED
