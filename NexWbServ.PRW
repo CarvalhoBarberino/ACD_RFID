@@ -5,11 +5,11 @@
 //#include "tbiconn.ch"
 
 #DEFINE NOME_FONTE "NexWbServ.PRW"
-#DEFINE compEmpre "99"
+#DEFINE compEmpre "01" // juk ver se isso ainda eh util
 
 WSRESTFUL nexSolucoes DESCRIPTION "webService com os metodos da NEX Solucoes" // https://tdn.totvs.com/display/public/framework/02.+Criando+uma+classe+REST https://terminaldeinformacao.com/2024/07/13/criando-um-webservice-rest-com-wsrestful-maratona-advpl-e-tl-535/
 
-	WSMETHOD POST apontamento_producao DESCRIPTION "Endpoint Protheus dedicado a receber e registrar apontamentos de produção" PATH "/production_add"
+	WSMETHOD POST apontamento_producao DESCRIPTION "Endpoint Protheus dedicado a receber e registrar apontamentos de producao" PATH "/production_add"
 	WSMETHOD POST Teste_production_order DESCRIPTION "Endpoint para testar a funcao opToSegel" PATH "/production_order"
 
 END WSRESTFUL
@@ -17,16 +17,16 @@ END WSRESTFUL
 WSMETHOD POST apontamento_producao WSSERVICE nexSolucoes
 	local cConteudo		:= self:getContent()
 	local oJsonReceb	:= jsonObject():new()
-	local cErroJson		:= oJsonReceb:fromJson(cConteudo) // Variável que indica se houve erro na interpretação do json
+	local cErroJson		:= oJsonReceb:fromJson(cConteudo) // Variavel que indica se houve erro na interpretacao do json
 	local oJsonRet		:= jsonObject():new() // Json de resposta
 	local cFilia
-	local cOp			// Ordem de produção
+	local cOp			// Ordem de producao
 	local cCodProd		// Cod do Produto
-	local cDescr		// Descrição do produto
+	local cDescr		// Descricao do produto
 	local cArmazem		// Armazem
 	local cLote			// Lote
 	local nQuant		// Quantidade
-	local cSerie		// Numero de série do produto
+	local cSerie		// Numero de serie do produto
 	local cTags			// Tags
 	local aExecAut		// Array com retorno do execAuto {lOk, cDetalhes}
 	local cRet
@@ -59,7 +59,7 @@ WSMETHOD POST apontamento_producao WSSERVICE nexSolucoes
 
 	BEGIN TRANSACTION
 		aExecAut := U_aptProd(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cSerie, cTags)
-		conOut(VarInfo("U_aptProd aExecAut", aExecAut, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
+		conOut(VarInfo("U_aptProd aExecAut", aExecAut, /*espacamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
 		if !aExecAut[1]
 			conOut("linha 74")
 			DisarmTransaction()
@@ -75,7 +75,7 @@ WSMETHOD POST apontamento_producao WSSERVICE nexSolucoes
 		oJsonRet["U_aptProd"] := aExecAut[2]
 		conOut("linha 85")
 		aExecAut := U_endereca(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cSerie, cTags)
-		conOut(VarInfo("U_endereca aExecAut", aExecAut, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
+		conOut(VarInfo("U_endereca aExecAut", aExecAut, /*espacamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
 		if !aExecAut[1]
 			conOut("linha 88")
 			DisarmTransaction()

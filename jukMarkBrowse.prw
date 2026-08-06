@@ -108,7 +108,6 @@ EndClass
 /*/
 method New(aCampos, cAliasQuery, cCampoIndice, cCampoSel) class jukMarkBrowse
 	local nIx
-	local nIy
 	local lFalhaIndice	:= .T.
 	local lFalhaSel		:= .T.
 
@@ -200,7 +199,7 @@ method getAliasTemp() class jukMarkBrowse
 			Aux := &(::cAliasQuery + "->" + ::aCampos[nIx, 1])
 			if ::aCampos[nIx, 3] == 'D' .and. valType(Aux) == 'C'
 				Aux := sToD(Aux)
-			elseIf ::aCampos[nIx, 3] == 'C' .and. valType(Aux) == 'C'
+			elseIf (::aCampos[nIx, 3] == 'C' .and. valType(Aux) == 'C') .or. (::aCampos[nIx, 3] == 'M' .and. valType(Aux) == 'C')
 				Aux := allTrim(Aux)
 			elseIf ::aCampos[nIx, 3] != valType(Aux)
 				FWAlertError("Erro de tipagem." + CRLF + "Campo " + ::aCampos[nIx, 1] + CRLF + "Esperava receber " + ::aCampos[nIx, 3] + " mas recebeu " + valType(Aux), NOME_FONTE)
@@ -284,7 +283,7 @@ method jukPlay() class jukMarkBrowse
 	//Criando a janela
 	DEFINE MSDIALOG oDlgMark TITLE "Liberações a enviar para DrivIn" FROM 000, 000  TO aMsAdvSize[6], aMsAdvSize[5] COLORS 0, 16777215 PIXEL
 	oPanGrid := tPanel():New(001, 001, '', oDlgMark, , , , RGB(000,000,000), RGB(254,254,254), (aMsAdvSize[5]/2)-1, (aMsAdvSize[6]/2 - 1))
-	oMarkBrowse:= FWMarkBrowse():New()
+	oMarkBrowse := FWMarkBrowse():New()
 	oMarkBrowse:SetDescription("Selecione liberações a enviar") //Titulo da Janela
 	oMarkBrowse:SetAlias(::cAliasTemp)
 	oMarkBrowse:oBrowse:SetDBFFilter(.T.)
@@ -299,11 +298,11 @@ method jukPlay() class jukMarkBrowse
 	oMarkBrowse:SetFontBrowse(oFontGrid)
 	oMarkBrowse:SetOwner(oPanGrid)
 
-	oMarkBrowse:AddLegend("C9_DATENT<date()", "BLUE", "Não apto a enviar")
-	oMarkBrowse:AddLegend("date()<=C9_DATENT.and.COMUNIC==1", "GREEN", "Apto a enviar") // 
-	oMarkBrowse:AddLegend("date()<=C9_DATENT.and.COMUNIC==2", "YELLOW", "Enviado")
-	oMarkBrowse:AddLegend("date()<=C9_DATENT.and.COMUNIC==3", "RED", "Enviado com erro")
-	oMarkBrowse:AddLegend("date()<=C9_DATENT.and.COMUNIC==4", "GREY", "Inconsistencia")
+	oMarkBrowse:AddLegend("C9_DATENT<date()", "BLUE", "Entrega atrasada")
+	oMarkBrowse:AddLegend("date()<=C9_DATENT.and.COMUNIC==1", "GREEN", "Apto a enviar")
+	oMarkBrowse:AddLegend("COMUNIC==2", "YELLOW", "Enviado")
+	oMarkBrowse:AddLegend("date()<=C9_DATENT.and.COMUNIC==4", "RED", "Enviado com erro")
+	oMarkBrowse:SetValid({|| date() <= C9_DATENT .and. (COMUNIC == 1 .or. COMUNIC==4)})
 
 	oMarkBrowse:SetColumns(aColunas)
 	oMarkBrowse:Activate()
