@@ -4,7 +4,7 @@
 #DEFINE NOME_FONTE		"NEXACD.PRW"
 #DEFINE BEARER_TOKEN	""
 #DEFINE API_KEY			"647fbc3a-9e8d-49b8-ba28-b5ec3d72b673"
-//#DEFINE ORACLE
+#DEFINE ORACLE
 
 /*/{Protheus.doc} aptProd
 	Funcao faz apontamento de producao. Eh chamado pelo webservice nexSolucoes
@@ -175,7 +175,7 @@ Exemplo de vetor que a função espera receber:
 	endIf
 
 	dbSelectArea('ZB0')
-	dbSetOrder(1)
+	ZB0->(dbSetOrder(1))
 
 	/*
 	While .T.
@@ -260,8 +260,8 @@ user function CBRETEAN()
 	local aRet				:= {}
 
 	dbSelectArea('ZB0')
-	dbSetOrder(1)
-	if msSeek(fwXFilial('ZB0') + cId)
+	ZB0->(dbSetOrder(1))
+	if ZB0->(msSeek(fwXFilial('ZB0') + cId))
 		aRet := {;
 			ZB0->ZB0_CODPRO, ;
 			ZB0->ZB0_QTDE, ;
@@ -321,9 +321,9 @@ user function opToSegel()
 	local cToken		:= BEARER_TOKEN
 
 	dbSelectArea("SB1")
-	dbSetOrder(1) // B1_FILIAL + B1_COD
+	SB1->(dbSetOrder(1)) // B1_FILIAL + B1_COD
 
-	if !msSeek(fwXFilial("SB1") + cCodProd)
+	if !SB1->(msSeek(fwXFilial("SB1") + cCodProd))
 		msgAlert("Produto " + cCodProd + " não cadastrado na filial " + fwXFilial("SB1") + ".", NOME_FONTE)
 		return
 	endIf
@@ -398,7 +398,7 @@ user function C9DrivIn()
 	local cAliasC9			:= getNextAlias()
 	local cAliasTemp
 	local nTamIdx			:= tamSX3("C5_FECENT")[1] + tamSX3("C9_CLIENTE")[1] + tamSX3("C9_PEDIDO")[1] + tamSX3("C9_ITEM")[1] + tamSX3("C9_SEQUEN")[1]
-	local aEstrutura := {;
+	local aEstrutura		:= {;
 		{"C9_FILIAL",		"Filial",			tamSX3("C9_FILIAL")[3],			tamSX3("C9_FILIAL")[1],			tamSX3("C9_FILIAL")[2],		""},;
 		{"C9_PEDIDO",		"Pedido",			tamSX3("C9_PEDIDO")[3],			tamSX3("C9_PEDIDO")[1],			tamSX3("C9_PEDIDO")[2],		""},;
 		{"C9_CLIENTE",		"Cliente",			tamSX3("C9_CLIENTE")[3],		tamSX3("C9_CLIENTE")[1],		tamSX3("C9_CLIENTE")[2],	""},;
@@ -512,7 +512,8 @@ user function C9DrivIn()
 	cQy += "		AND DC_NUMLOTE = C9_NUMLOTE " + CRLF
 	cQy += "		AND DC.D_E_L_E_T_ = '' " + CRLF
 	cQy += "WHERE " + CRLF
-	cQy += "	C9_PEDIDO BETWEEN '" + cPedidoDe + "' AND '" + cPedidoAte + "' " + CRLF
+	cQy += "	C9_FILIAL = '" + fwXFilial("SC9") + "' " + CRLF
+	cQy += "	AND C9_PEDIDO BETWEEN '" + cPedidoDe + "' AND '" + cPedidoAte + "' " + CRLF
 	cQy += "	AND C9_CLIENTE BETWEEN '" + cCliDe + "' AND '" + cCliAte + "' " + CRLF
 	cQy += "	AND C9_LOJA BETWEEN '" + cLojaDe + "' AND '" + cLojaAte + "' " + CRLF
 	cQy += "	AND C9_DATENT BETWEEN '" + dToS(dDataDe) + "' AND '" + dToS(dDataAte) + "' " + CRLF
@@ -524,6 +525,7 @@ user function C9DrivIn()
 	cQy += "	C9_PEDIDO, " + CRLF
 	cQy += "	C9_ITEM, " + CRLF
 	cQy += "	C9_SEQUEN; "
+	showLog(ChangeQuery(cQy))
 	showLog(cQy)
 
 	dbUseArea(.T., "TOPCONN", TCGenQry(, , ChangeQuery(cQy)), cAliasC9, .F., .T.)
@@ -535,15 +537,14 @@ user function C9DrivIn()
 	oObjeto1:setARotina({;
 		{"Enviar p/ DriveIn",	'U_goDrvIn("' + cAliasTemp + '")',			2,		0}, ;
 		{"Inspecionar erro",	'U_inspGoDrvI("' + cAliasTemp + '")',		2,		0}})
-	oObjeto1:jukPlay()
+	oObjeto1:jukPlay("Liberações a enviar para DrivIn")
 return
 
 user function inspGoDrvI(cAliasTemp)
-	local cText
 
 	dbSelectArea("SC9")
-	dbSetOrder(1)
-	if !msSeek(fwXFilial('SC9') + (cAliasTemp)->C9_PEDIDO + (cAliasTemp)->C9_ITEM + (cAliasTemp)->C9_SEQUEN + (cAliasTemp)->C9_PRODUTO + "  " + "  ") // C9_FILIAL + C9_PEDIDO + C9_ITEM + C9_SEQUEN + C9_PRODUTO + C9_BLEST + C9_BLCRED
+	SC9->(dbSetOrder(1))
+	if !SC9->(msSeek(fwXFilial('SC9') + (cAliasTemp)->C9_PEDIDO + (cAliasTemp)->C9_ITEM + (cAliasTemp)->C9_SEQUEN + (cAliasTemp)->C9_PRODUTO + "  " + "  ")) // C9_FILIAL + C9_PEDIDO + C9_ITEM + C9_SEQUEN + C9_PRODUTO + C9_BLEST + C9_BLCRED
 		msgAlert("Erro de posicionamento na tabela SC9", NOME_FONTE)
 		return
 	endIf
@@ -579,6 +580,9 @@ user function goDrvIn(cAliasTemp)
 	local cTokenDt
 	local aPostRet
 	local oErroPost		:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
+	local nIResponse
+	local nIDetails
+	local nAux
 
 	oItem['code'] := "zero"
 	aAdd(aItens, oItem)
@@ -597,7 +601,7 @@ user function goDrvIn(cAliasTemp)
 			loop
 		endIf
 
-		if cPedido != (cAliasTemp)->C9_PEDIDO
+		if cPedido != (cAliasTemp)->C9_PEDIDO .or. cCliente != (cAliasTemp)->C9_CLIENTE .or. dDtentrega != (cAliasTemp)->C9_DATENT
 			oPedido['items'] := aItens
 			aAdd(aPedidos, oPedido)
 			//novo json de pedido
@@ -607,7 +611,7 @@ user function goDrvIn(cAliasTemp)
 			oPedido['code'] := (cAliasTemp)->C9_PEDIDO
 		endIf
 
-		if cCliente != (cAliasTemp)->C9_CLIENTE
+		if cCliente != (cAliasTemp)->C9_CLIENTE .or. dDtentrega != (cAliasTemp)->C9_DATENT
 			oCliente['orders'] := aPedidos
 			aAdd(aClientes, oCliente)
 			//novo json de cliente
@@ -673,6 +677,7 @@ user function goDrvIn(cAliasTemp)
 			exit
 		endIf
 		cTokenDt := escolheTk(aTokensDt)
+		nAux := aScan(aTokensDt, {|x| cTokenDt == x['token']})
 		if iif(!empty(cTokenDt), msgYesNo("Confirma o envio do POST?" + CRLF + "Data: " + dToC(aDtEntrJson[nI, 1]) + " Token: " + cTokenDt, NOME_FONTE), .F.)
 			aPostRet := postPedido(cTokenDt, aDtEntrJson[nI, 2])
 			(cAliasTemp)->(dbGoTop())
@@ -683,8 +688,8 @@ user function goDrvIn(cAliasTemp)
 				endIf
 
 				dbSelectArea("SC9")
-				dbSetOrder(1)
-				if !msSeek(fwXFilial('SC9') + (cAliasTemp)->C9_PEDIDO + (cAliasTemp)->C9_ITEM + (cAliasTemp)->C9_SEQUEN + (cAliasTemp)->C9_PRODUTO + "  " + "  ") // C9_FILIAL + C9_PEDIDO + C9_ITEM + C9_SEQUEN + C9_PRODUTO + C9_BLEST + C9_BLCRED
+				SC9->(dbSetOrder(1))
+				if !SC9->(msSeek(fwXFilial('SC9') + (cAliasTemp)->C9_PEDIDO + (cAliasTemp)->C9_ITEM + (cAliasTemp)->C9_SEQUEN + (cAliasTemp)->C9_PRODUTO + "  " + "  ")) // C9_FILIAL + C9_PEDIDO + C9_ITEM + C9_SEQUEN + C9_PRODUTO + C9_BLEST + C9_BLCRED
 					msgAlert("Erro na atualização de dados após POST", NOME_FONTE)
 					(cAliasTemp)->(dbSkip())
 					loop
@@ -692,7 +697,7 @@ user function goDrvIn(cAliasTemp)
 
 				if aPostRet[1]
 					recLock('SC9',.F.)
-					SC9->C9_ZCENARI := dToC(aDtEntrJson[nI, 1]) + " " + aTokensDt[nI]['description']// + " " + aTokensDt[nI]['schema_name']
+					SC9->C9_ZCENARI := dToC(aDtEntrJson[nI, 1]) + " " + aTokensDt[nAux]['description']// + " " + aTokensDt[nI]['schema_name']
 					SC9->C9_ZDRIVIN := nil
 					msUnLock()
 					recLock((cAliasTemp),.F.)

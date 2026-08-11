@@ -187,7 +187,7 @@ method getAliasTemp() class jukMarkBrowse
 
 	::cAliasTemp := getNextAlias()
 	::oTabela := FWTemporaryTable():new(::cAliasTemp, aCamposRed)
-	::oTabela:AddIndex("01", {::cCampoIndice} )
+	::oTabela:AddIndex("01", {::cCampoIndice})
 	::oTabela:Create()
 	::cAliasTemp := ::oTabela:GetAlias()
 
@@ -265,7 +265,7 @@ return aColunas
 	@since 06/05/2026
 	@version 0
 /*/
-method jukPlay() class jukMarkBrowse
+method jukPlay(cTitulo) class jukMarkBrowse
 	local aColunas
 	local oFontGrid
 
@@ -281,7 +281,7 @@ method jukPlay() class jukMarkBrowse
 	aRotina := menuDef(::aRotinaIn)
 
 	//Criando a janela
-	DEFINE MSDIALOG oDlgMark TITLE "Liberações a enviar para DrivIn" FROM 000, 000  TO aMsAdvSize[6], aMsAdvSize[5] COLORS 0, 16777215 PIXEL
+	DEFINE MSDIALOG oDlgMark TITLE cTitulo FROM 000, 000  TO aMsAdvSize[6], aMsAdvSize[5] COLORS 0, 16777215 PIXEL
 	oPanGrid := tPanel():New(001, 001, '', oDlgMark, , , , RGB(000,000,000), RGB(254,254,254), (aMsAdvSize[5]/2)-1, (aMsAdvSize[6]/2 - 1))
 	oMarkBrowse := FWMarkBrowse():New()
 	oMarkBrowse:SetDescription("Selecione liberações a enviar") //Titulo da Janela
@@ -298,11 +298,13 @@ method jukPlay() class jukMarkBrowse
 	oMarkBrowse:SetFontBrowse(oFontGrid)
 	oMarkBrowse:SetOwner(oPanGrid)
 
-	oMarkBrowse:AddLegend("C9_DATENT<date()", "BLUE", "Entrega atrasada")
-	oMarkBrowse:AddLegend("date()<=C9_DATENT.and.COMUNIC==1", "GREEN", "Apto a enviar")
-	oMarkBrowse:AddLegend("COMUNIC==2", "YELLOW", "Enviado")
-	oMarkBrowse:AddLegend("date()<=C9_DATENT.and.COMUNIC==4", "RED", "Enviado com erro")
-	oMarkBrowse:SetValid({|| date() <= C9_DATENT .and. (COMUNIC == 1 .or. COMUNIC==4)})
+	if cTitulo == "Liberações a enviar para DrivIn"
+		oMarkBrowse:AddLegend("C9_DATENT<date()", "BLUE", "Entrega atrasada")
+		oMarkBrowse:AddLegend("date()<=C9_DATENT.and.COMUNIC==1", "GREEN", "Apto a enviar")
+		oMarkBrowse:AddLegend("COMUNIC==2", "YELLOW", "Enviado")
+		oMarkBrowse:AddLegend("date()<=C9_DATENT.and.COMUNIC==4", "RED", "Enviado com erro")
+		oMarkBrowse:SetValid({|| date() <= C9_DATENT .and. (COMUNIC == 1 .or. COMUNIC==4)})
+	endIf
 
 	oMarkBrowse:SetColumns(aColunas)
 	oMarkBrowse:Activate()
