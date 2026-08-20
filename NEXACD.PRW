@@ -425,6 +425,7 @@ user function C9DrivIn()
 	local cCampoIdx			:= "REC"
 	local cCampoSel			:= "SEL_OK"
 	local oObjeto1
+	local nIx
 
 
 	if !Pergunte("C9DRIVEIN ", .T.)
@@ -491,12 +492,12 @@ user function C9DrivIn()
 	cQy += "		AND B1.D_E_L_E_T_ = '' " + CRLF
 	cQy += "	INNER JOIN " + CRLF
 	cQy += "		" + retSqlName("SA1") + " A1 " + CRLF
-	cQy += "		ON A1.A1_FILIAL = '  ' " + CRLF
+	cQy += "		ON " + fwJoinFilial("SC9", "SA1", "C9", "A1", .T., , .T.) + " " + CRLF
 	cQy += "		AND A1_COD = C9_CLIENTE " + CRLF
 	cQy += "		AND A1.D_E_L_E_T_ = '' " + CRLF
 	cQy += "	INNER JOIN " + CRLF
 	cQy += "		" + retSqlName("SYA") + " YA " + CRLF
-	cQy += "		ON YA.YA_FILIAL = '  ' " + CRLF
+	cQy += "		ON " + fwJoinFilial("SC9", "SYA", "C9", "YA", .T., , .T.) + " " + CRLF
 	cQy += "		AND YA_CODGI = A1_PAIS " + CRLF
 	cQy += "		AND YA.D_E_L_E_T_ = '' " + CRLF
 	cQy += "	LEFT JOIN " + CRLF
@@ -512,23 +513,24 @@ user function C9DrivIn()
 	cQy += "		AND DC_NUMLOTE = C9_NUMLOTE " + CRLF
 	cQy += "		AND DC.D_E_L_E_T_ = '' " + CRLF
 	cQy += "WHERE " + CRLF
-	cQy += "	C9_FILIAL = '" + fwXFilial("SC9") + "' " + CRLF
-	cQy += "	AND C9_PEDIDO BETWEEN '" + cPedidoDe + "' AND '" + cPedidoAte + "' " + CRLF
-	cQy += "	AND C9_CLIENTE BETWEEN '" + cCliDe + "' AND '" + cCliAte + "' " + CRLF
-	cQy += "	AND C9_LOJA BETWEEN '" + cLojaDe + "' AND '" + cLojaAte + "' " + CRLF
-	cQy += "	AND C9_DATENT BETWEEN '" + dToS(dDataDe) + "' AND '" + dToS(dDataAte) + "' " + CRLF
-	cQy += "	AND C9_PRODUTO BETWEEN '" + cProdDe + "' AND '" + cProdAte + "' " + CRLF
+	cQy += "	C9_FILIAL = '" + allTrim(fwXFilial("SC9")) + "' " + CRLF
+	cQy += "	AND C9_PEDIDO BETWEEN '" + allTrim(cPedidoDe) + "' AND '" + allTrim(cPedidoAte) + "' " + CRLF
+	cQy += "	AND C9_CLIENTE BETWEEN '" + allTrim(cCliDe) + "' AND '" + allTrim(cCliAte) + "' " + CRLF
+	cQy += "	AND C9_LOJA BETWEEN '" + allTrim(cLojaDe) + "' AND '" + allTrim(cLojaAte) + "' " + CRLF
+	cQy += "	AND C9_DATENT BETWEEN '" + allTrim(dToS(dDataDe)) + "' AND '" + allTrim(dToS(dDataAte)) + "' " + CRLF
+	cQy += "	AND C9_PRODUTO BETWEEN '" + allTrim(cProdDe) + "' AND '" + allTrim(cProdAte) + "' " + CRLF
 	cQy += "	AND C9_BLEST = '' " + CRLF
 	cQy += "	AND C9_BLCRED = '' " + CRLF
 	cQy += "	AND C9.D_E_L_E_T_ = '' " + CRLF
 	cQy += "ORDER BY " + CRLF
 	cQy += "	C9_PEDIDO, " + CRLF
 	cQy += "	C9_ITEM, " + CRLF
-	cQy += "	C9_SEQUEN; "
-	showLog(ChangeQuery(cQy))
+	cQy += "	C9_SEQUEN"
+	showLog(cQy)
+	cQy := ChangeQuery(cQy)
 	showLog(cQy)
 
-	dbUseArea(.T., "TOPCONN", TCGenQry(, , ChangeQuery(cQy)), cAliasC9, .F., .T.)
+	dbUseArea(.T., "TOPCONN", TCGenQry(, , cQy), cAliasC9, .F., .T.)
 	dbSelectArea(cAliasC9)
 	(cAliasC9)->(dbGoTop())
 
@@ -900,14 +902,11 @@ static function postPedido(cToken, oDtEntrega)
 	endIf
 return {.t., cRet}
 
-
 user function omsGrDriv()
 	local cUrl			:= "https://external-qa.driv.in/api/external/v2" // juk Criar parametro para estes enderecos
 	local cPath
 	local aResp			:= {}
-	local dDtentrega
 	local aTokensDt
-	local cTokenDt
 	local oRestClient	:= FWRest():New(cUrl) // https://tdn.totvs.com/display/public/framework/FWRest
 	local cApiKey		:= API_KEY
 	local aHeader		:= {"X-API-Key: " + cApiKey, "Content-Type: application/json"}
@@ -915,56 +914,63 @@ user function omsGrDriv()
 	local cJsonRaw
 
 	local aEstrutura	:= {;
-		{"ROTA",		"Rota",			"C",		6,				0,				""}, ;
-		{"FLEET",		"Fleet",		"N",		6,				0,				""}, ;
-		{"DEPLOY",		"Deploy",		"D",		8,				0,				""}, ;
-		{"VEHICLE",		"Vehicle",		"C",		16,				0,				""}, ;
-		{"COMUNIC",		"Comunic",		"N",		1,				0,				""}, ;
-		{"REC",			"Rec",			"N",		6,				0,				""}, ;
-		{"SEL_OK",		"Sel",			"C",		2,				0,				""}}
-	//	 Campo			Título			Típo		Tamanho			Decimais		Mascara
+		{"ROTA",		"Rota",			"C",						6,							0,							""}, ;
+		{"FLEET",		"Fleet",		"N",						6,							0,							""}, ;
+		{"DEPLOY",		"Deploy",		"D",						8,							0,							""}, ;
+		{"VEHICLE",		"Vehicle",		"C",						16,							0,							""}, ;
+		{"DAK_COD",		"Comunic",		tamSX3("DAK_COD")[3],		tamSX3("DAK_COD")[1],		tamSX3("DAK_COD")[2],		""}, ;
+		{"COMUNIC",		"Comunic",		"N",						1,							0,							""}, ;
+		{"REC",			"Rec",			"N",						6,							0,							""}, ;
+		{"SEL_OK",		"Sel",			"C",						2,							0,							""}}
+	//	 Campo			Título			Típo						Tamanho						Decimais					Mascara
 	local aCamposRed	:= {;
-		{"ROTA",		"C",		6,				0,}, ;
-		{"FLEET",		"N",		6,				0,}, ;
-		{"DEPLOY",		"D",		8,				0,}, ;
-		{"VEHICLE",		"C",		16,				0,}, ;
-		{"COMUNIC",		"N",		1,				0,}, ;
-		{"REC",			"N",		6,				0,}, ;
-		{"SEL_OK",		"C",		2,				0,}}
-	//	 Campo			Típo		Tamanho			Decimais
+		{"ROTA",						"C",						6,							0}, ;
+		{"FLEET",						"N",						6,							0}, ;
+		{"DEPLOY",						"D",						8,							0}, ;
+		{"VEHICLE",						"C",						16,							0}, ;
+		{"DAK_COD",						tamSX3("DAK_COD")[3],		tamSX3("DAK_COD")[1],		tamSX3("DAK_COD")[2]}, ;
+		{"COMUNIC",						"N",						1,							0}, ;
+		{"REC",							"N",						6,							0}, ;
+		{"SEL_OK",						"C",						2,							0}}
+	//	 Campo							Típo						Tamanho						Decimais
 	local cCampoIdx		:= "REC"
 	local cCampoSel		:= "SEL_OK"
 	local cAliasRote	:= getNextAlias()
+	local cAliasDAK		:= getNextAlias()
 	local oMarkBr
 	local cAliasTemp
 	local nIResponse
+	local nCOMUNIC
+	local cDAK_COD
+	private dDtentrega
+	private cTokenDt
 
 	if !ParamBox({{1,		"Data de entrega",			date(),		"",		"",		"",		".T.",		100,		.F.}} /*aPerguntas configuradas*/, "Escolha uma data de entrega" /*Titulo*/, @aResp /*Vetor passado por referencia para retorno das respostas*/, /*bOk Code block para validar o botão Ok*/, /*aButtons Vetor com mais botões além dos botões de Ok e Cancel*/, /*lCentered Centralizar a janela*/, /*nPosX*/, /*nPosY*/, /*oPanel Caso quera adicionar a tela de perguntas a um painel já existente*/, /*cLoad Nome do perfil se caso for carregar*/, .T. /*lCanSave Salvar os dados informados nos parâmetros por perfil*/, .T. /*lUserSave Configuração por usuário*/)
 		mesgAlert("Falha ao carregar data de entrega.", NOME_FONTE)
 		return
 	endIf
 
-	#IFDEF BLABLA // juk trecho removido porenquanto para teste sem o rest
-		dDtentrega := aResp[1]
-		aTokensDt := getTokenDt(dDtentrega)
-		cTokenDt := escolheTk(aTokensDt)
-		cPath := "/results?token=" + cTokenDt + "&unassigned=1"
-		oRestClient:SetPath(cPath)
-		if oRestClient:get(aHeader)
-			showLog(oRestClient:getResult())
-			oJsonReceb:fromJson(oRestClient:getResult())
-		else
-			msgAlert("Houve erro no retorno do GET de cargas " + cPath + CRLF + oRestClient:getLastError(), NOME_FONTE)
-			showLog(oRestClient:getResult())
-			return
-		endIf
-	#ENDIF
-	cJsonRaw := '{"status":"OK","success":true,"response":[{"vehicle":null,"description":null,"code":"001","scenario_description":"08.10-1","deploy_date":"2026-08-10","scenario_token":"5f3f186a-4577-458a-8b5b-aa4d753afcea","fleet_sequence":1,"skills":[],"driver":null,"peoneta":null,"summary":{"total_trips":1,"total_orders":1,"total_addresses":1,"total_distance":0.0,"total_time":40.0},"trips":[{"summary":{"trip_number":1,"total_orders":1,"total_addresses":1,"total_distance":0.0,"total_time":40.0,"code":null,"original_total_distance":0,"original_total_time_human":"00:40"},"driver":null,"peoneta":null,"work_shift_name":null,"approved_at":null,"started_at":null,"ended_at":null,"received_orders_size":0,"available_capacity":null,"available_time":null,"remaining_clearance":null,"results":[{"eta":"07:00","eta_started":null,"eta_mode":0,"deposit":true,"position":0,"real_distance":0.0,"planned_distance":null,"start_distance":null,"stop":{"code":null,"name":"MATRIZ CDD","client":null,"address_type":null,"address":"Sueñolar Ypacarai","reference":null,"city":"Ypacaraí","country":"Paraguay","lat":-25.3967453,"lng":-57.2789019,"service_time":null,"priority":null,"skills":null,"time_windows":null},"orders":[]},{"eta":"07:10","eta_started":null,"eta_mode":0,"deposit":false,"position":1,"real_distance":0.0,"planned_distance":0.0,"start_distance":null,"stop":{"code":"000004","name":"CALOTEIROS SMART CLUB                             ","client":"CALOTEIROS SMART CLUB                             ","address_type":null,"address":"RUA PASSA AMANHA QUE VEM, 45            ","reference":null,"city":"EMBUDAS        ","country":"AFEGANISTAO              ","lat":-23.442503,"lng":-58.443832,"service_time":20,"priority":2,"skills":[],"time_windows":[{"start":"07:00","end":"16:00"}]},"orde'
-	cJsonRaw += 'rs":[{"idx":1,"code":"000026","units_1":1.0,"units_2":3.4,"units_3":0.0,"alt_code":null,"custom_1":null,"custom_2":null,"custom_3":null,"custom_4":null,"custom_5":null,"custom_6":null,"custom_7":null,"custom_8":null,"custom_9":null,"custom_10":null,"custom_11":null,"number_1":null,"number_2":null,"number_3":null,"number_4":null,"delivery_date":null,"supplier_code":null,"supplier_name":null,"client_code":null,"client_name":"CALOTEIROS SMART CLUB                             ","contact_name":null,"contact_phone":null,"contact_email":null,"sales_zone_code":null,"sales_zone_name":null,"items":[{"code":"01-01-000007         ","description":"SUPER KOALA SUPERIOR PREMIUM                      ","units":1.0,"units_1":null,"units_2":3.1,"units_3":null,"units_4":0,"requested_units":0.0,"custom_1":null,"custom_2":null,"custom_3":null,"custom_4":null,"custom_5":null,"custom_6":null,"custom_7":null,"custom_8":null,"custom_10":null,"custom_11":null,"custom_12":null,"custom_13":null,"custom_14":null,"custom_15":null,"custom_16":null,"custom_17":null,"custom_18":null,"custom_19":null,"custom_20":null,"number_1":null,"number_2":null,"number_3":null,"number_4":null,"number_5":null,"number_6":null,"number_7":null,"number_8":null,"number_9":null,"number_10":null,"item_contents":[]},{"code":"01-02-000007         ","description":"SUPER KOALA SUPERIOR PREMIUM                      ","units":1.0,"units_1":null,"units_2":3.1,"units_3":null,"units_4":0,"requested_units":0.0,"custom_1":null,"custom_2":null,"custom_3":null,"custom_4":null,"custom_5":null,"custom_6":null,"custom_7":null,"custom_8":null,"custom_10":null,"custom_11":null,"custom_12":null,"custom_13":null,"custom_14":null,"custom_15":null,"custom_16":null,"custom_17":null,"custom_18":null,"custom_19":null,"custom_20":null,"n'
-	cJsonRaw += 'umber_1":null,"number_2":null,"number_3":null,"number_4":null,"number_5":null,"number_6":null,"number_7":null,"number_8":null,"number_9":null,"number_10":null,"item_contents":[]},{"code":"02-01-000008         ","description":"BOX KOALA TOP PLUS VISCO                          ","units":1.0,"units_1":null,"units_2":3.4,"units_3":null,"units_4":0,"requested_units":0.0,"custom_1":null,"custom_2":null,"custom_3":null,"custom_4":null,"custom_5":null,"custom_6":null,"custom_7":null,"custom_8":null,"custom_10":null,"custom_11":null,"custom_12":null,"custom_13":null,"custom_14":null,"custom_15":null,"custom_16":null,"custom_17":null,"custom_18":null,"custom_19":null,"custom_20":null,"number_1":null,"number_2":null,"number_3":null,"number_4":null,"number_5":null,"number_6":null,"number_7":null,"number_8":null,"number_9":null,"number_10":null,"item_contents":[]}]}]},{"eta":"07:40","eta_started":null,"eta_mode":0,"deposit":true,"position":2,"real_distance":0.0,"planned_distance":0.0,"start_distance":null,"stop":{"code":null,"name":"MATRIZ CDD","client":null,"address_type":null,"address":"Sueñolar Ypacarai","reference":null,"city":"Ypacaraí","country":"Paraguay","lat":-25.3967453,"lng":-57.2789019,"service_time":null,"priority":null,"skills":null,"time_windows":null},"orders":[]}],"kpis":{"orders_pending":1,"orders_approved":0,"orders_partial":0,"orders_rejected":0,"return_eta":"07:40"}}]},{"vehicle":null,"description":null,"code":"002","scenario_description":"08.10-1","deploy_date":"2026-08-10","scenario_token":"5f3f186a-4577-458a-8b5b-aa4d753afcea","fleet_sequence":2,"skills":[],"driver":null,"peoneta":null,"summary":{"total_trips":1,"total_orders":1,"total_addresses":1,"total_distance":0.0,"total_time":40.0},"trips":[{"summary":{"trip_number":1,"total_orders":1,"total_addresses":1,"total_distance":0.0,"total_time":40.0,"co'
-	cJsonRaw += 'de":null,"original_total_distance":0,"original_total_time_human":"00:40"},"driver":null,"peoneta":null,"work_shift_name":null,"approved_at":null,"started_at":null,"ended_at":null,"received_orders_size":0,"available_capacity":null,"available_time":null,"remaining_clearance":null,"results":[{"eta":"07:00","eta_started":null,"eta_mode":0,"deposit":true,"position":0,"real_distance":0.0,"planned_distance":null,"start_distance":null,"stop":{"code":null,"name":"MATRIZ CDD","client":null,"address_type":null,"address":"Sueñolar Ypacarai","reference":null,"city":"Ypacaraí","country":"Paraguay","lat":-25.3967453,"lng":-57.2789019,"service_time":null,"priority":null,"skills":null,"time_windows":null},"orders":[]},{"eta":"07:10","eta_started":null,"eta_mode":0,"deposit":false,"position":1,"real_distance":0.0,"planned_distance":0.0,"start_distance":null,"stop":{"code":"000006","name":"INTERPLANETARIOS LIDER                            ","client":"INTERPLANETARIOS LIDER                            ","address_type":null,"address":"AVENIDA FAROL IRLANDES, 181             ","reference":null,"city":"BARUEBAS       ","country":"ALEMANHA                 ","lat":-23.442503,"lng":-58.443832,"service_time":20,"priority":2,"skills":[],"time_windows":[{"start":"07:00","end":"16:00"}]},"orders":[{"idx":1,"code":"000028","units_1":1.0,"units_2":3.1,"units_3":0.0,"alt_code":null,"custom_1":null,"custom_2":null,"custom_3":null,"custom_4":null,"custom_5":null,"custom_6":null,"custom_7":null,"custom_8":null,"custom_9":null,"custom_10":null,"custom_11":null,"number_1":null,"number_2":null,"number_3":null,"number_4":null,"delivery_date":null,"supp'
-	cJsonRaw += 'lier_code":null,"supplier_name":null,"client_code":null,"client_name":"INTERPLANETARIOS LIDER                            ","contact_name":null,"contact_phone":null,"contact_email":null,"sales_zone_code":null,"sales_zone_name":null,"items":[{"code":"01-01-000007         ","description":"SUPER KOALA SUPERIOR PREMIUM                      ","units":1.0,"units_1":null,"units_2":3.1,"units_3":null,"units_4":0,"requested_units":0.0,"custom_1":null,"custom_2":null,"custom_3":null,"custom_4":null,"custom_5":null,"custom_6":null,"custom_7":null,"custom_8":null,"custom_10":null,"custom_11":null,"custom_12":null,"custom_13":null,"custom_14":null,"custom_15":null,"custom_16":null,"custom_17":null,"custom_18":null,"custom_19":null,"custom_20":null,"number_1":null,"number_2":null,"number_3":null,"number_4":null,"number_5":null,"number_6":null,"number_7":null,"number_8":null,"number_9":null,"number_10":null,"item_contents":[]},{"code":"01-02-000007         ","description":"SUPER KOALA SUPERIOR PREMIUM                      ","units":1.0,"units_1":null,"units_2":3.1,"units_3":null,"units_4":0,"requested_units":0.0,"custom_1":null,"custom_2":null,"custom_3":null,"custom_4":null,"custom_5":null,"custom_6":null,"custom_7":null,"custom_8":null,"custom_10":null,"custom_11":null,"custom_12":null,"custom_13":null,"custom_14":null,"custom_15":null,"custom_16":null,"custom_17":null,"custom_18":null,"custom_19":null,"custom_20":null,"number_1":null,"number_2":null,"number_3":null,"number_4":null,"number_5":null,"number_6":null,"number_7":null,"number_8":null,"number_9":null,"number_10":null,"item_contents":[]}]}]},{"eta":"07:40","eta_starte'
-	cJsonRaw += 'd":null,"eta_mode":0,"deposit":true,"position":2,"real_distance":0.0,"planned_distance":0.0,"start_distance":null,"stop":{"code":null,"name":"MATRIZ CDD","client":null,"address_type":null,"address":"Sueñolar Ypacarai","reference":null,"city":"Ypacaraí","country":"Paraguay","lat":-25.3967453,"lng":-57.2789019,"service_time":null,"priority":null,"skills":null,"time_windows":null},"orders":[]}],"kpis":{"orders_pending":1,"orders_approved":0,"orders_partial":0,"orders_rejected":0,"return_eta":"07:40"}}]}]}'
+	dDtentrega := aResp[1]
+	aTokensDt := getTokenDt(dDtentrega)
+	cTokenDt := escolheTk(aTokensDt)
+	cPath := "/results?token=" + cTokenDt + "&unassigned=1"
+	oRestClient:SetPath(cPath)
+	if oRestClient:get(aHeader)
+		showLog(oRestClient:getResult())
+		oJsonReceb:fromJson(oRestClient:getResult())
+	else
+		msgAlert("Houve erro no retorno do GET de cargas " + cPath + CRLF + oRestClient:getLastError(), NOME_FONTE)
+		showLog(oRestClient:getResult())
+		return
+	endIf
+	/*
+		cJsonRaw := '{"status":"OK","success":true,"response":[{"vehicle":null,"description":null,"code":"001","scenario_description":"08.10-1","deploy_date":"2026-08-10","scenario_token":"5f3f186a-4577-458a-8b5b-aa4d753afcea","fleet_sequence":1,"skills":[],"driver":null,"peoneta":null,"summary":{"total_trips":1,"total_orders":1,"total_addresses":1,"total_distance":0.0,"total_time":40.0},"trips":[{"summary":{"trip_number":1,"total_orders":1,"total_addresses":1,"total_distance":0.0,"total_time":40.0,"code":null,"original_total_distance":0,"original_total_time_human":"00:40"},"driver":null,"peoneta":null,"work_shift_name":null,"approved_at":null,"started_at":null,"ended_at":null,"received_orders_size":0,"available_capacity":null,"available_time":null,"remaining_clearance":null,"results":[{"eta":"07:00","eta_started":null,"eta_mode":0,"deposit":true,"position":0,"real_distance":0.0,"planned_distance":null,"start_distance":null,"stop":{"code":null,"name":"MATRIZ CDD","client":null,"address_type":null,"address":"Sueñolar Ypacarai","reference":null,"city":"Ypacaraí","country":"Paraguay","lat":-25.3967453,"lng":-57.2789019,"service_time":null,"priority":null,"skills":null,"time_windows":null},"orders":[]},{"eta":"07:10","eta_started":null,"eta_mode":0,"deposit":false,"position":1,"real_distance":0.0,"planned_distance":0.0,"start_distance":null,"stop":{"code":"000004","name":"CALOTEIROS SMART CLUB                             ","client":"CALOTEIROS SMART CLUB                             ","address_type":null,"address":"RUA PASSA AMANHA QUE VEM, 45            ","reference":null,"city":"EMBUDAS        ","country":"AFEGANISTAO              ","lat":-23.442503,"lng":-58.443832,"service_time":20,"priority":2,"skills":[],"time_windows":[{"start":"07:00","end":"16:00"}]},"orde'
+		cJsonRaw += 'rs":[{"idx":1,"code":"000026","units_1":1.0,"units_2":3.4,"units_3":0.0,"alt_code":null,"custom_1":null,"custom_2":null,"custom_3":null,"custom_4":null,"custom_5":null,"custom_6":null,"custom_7":null,"custom_8":null,"custom_9":null,"custom_10":null,"custom_11":null,"number_1":null,"number_2":null,"number_3":null,"number_4":null,"delivery_date":null,"supplier_code":null,"supplier_name":null,"client_code":null,"client_name":"CALOTEIROS SMART CLUB                             ","contact_name":null,"contact_phone":null,"contact_email":null,"sales_zone_code":null,"sales_zone_name":null,"items":[{"code":"01-01-000007         ","description":"SUPER KOALA SUPERIOR PREMIUM                      ","units":1.0,"units_1":null,"units_2":3.1,"units_3":null,"units_4":0,"requested_units":0.0,"custom_1":null,"custom_2":null,"custom_3":null,"custom_4":null,"custom_5":null,"custom_6":null,"custom_7":null,"custom_8":null,"custom_10":null,"custom_11":null,"custom_12":null,"custom_13":null,"custom_14":null,"custom_15":null,"custom_16":null,"custom_17":null,"custom_18":null,"custom_19":null,"custom_20":null,"number_1":null,"number_2":null,"number_3":null,"number_4":null,"number_5":null,"number_6":null,"number_7":null,"number_8":null,"number_9":null,"number_10":null,"item_contents":[]},{"code":"01-02-000007         ","description":"SUPER KOALA SUPERIOR PREMIUM                      ","units":1.0,"units_1":null,"units_2":3.1,"units_3":null,"units_4":0,"requested_units":0.0,"custom_1":null,"custom_2":null,"custom_3":null,"custom_4":null,"custom_5":null,"custom_6":null,"custom_7":null,"custom_8":null,"custom_10":null,"custom_11":null,"custom_12":null,"custom_13":null,"custom_14":null,"custom_15":null,"custom_16":null,"custom_17":null,"custom_18":null,"custom_19":null,"custom_20":null,"n'
+		cJsonRaw += 'umber_1":null,"number_2":null,"number_3":null,"number_4":null,"number_5":null,"number_6":null,"number_7":null,"number_8":null,"number_9":null,"number_10":null,"item_contents":[]},{"code":"02-01-000008         ","description":"BOX KOALA TOP PLUS VISCO                          ","units":1.0,"units_1":null,"units_2":3.4,"units_3":null,"units_4":0,"requested_units":0.0,"custom_1":null,"custom_2":null,"custom_3":null,"custom_4":null,"custom_5":null,"custom_6":null,"custom_7":null,"custom_8":null,"custom_10":null,"custom_11":null,"custom_12":null,"custom_13":null,"custom_14":null,"custom_15":null,"custom_16":null,"custom_17":null,"custom_18":null,"custom_19":null,"custom_20":null,"number_1":null,"number_2":null,"number_3":null,"number_4":null,"number_5":null,"number_6":null,"number_7":null,"number_8":null,"number_9":null,"number_10":null,"item_contents":[]}]}]},{"eta":"07:40","eta_started":null,"eta_mode":0,"deposit":true,"position":2,"real_distance":0.0,"planned_distance":0.0,"start_distance":null,"stop":{"code":null,"name":"MATRIZ CDD","client":null,"address_type":null,"address":"Sueñolar Ypacarai","reference":null,"city":"Ypacaraí","country":"Paraguay","lat":-25.3967453,"lng":-57.2789019,"service_time":null,"priority":null,"skills":null,"time_windows":null},"orders":[]}],"kpis":{"orders_pending":1,"orders_approved":0,"orders_partial":0,"orders_rejected":0,"return_eta":"07:40"}}]},{"vehicle":null,"description":null,"code":"002","scenario_description":"08.10-1","deploy_date":"2026-08-10","scenario_token":"5f3f186a-4577-458a-8b5b-aa4d753afcea","fleet_sequence":2,"skills":[],"driver":null,"peoneta":null,"summary":{"total_trips":1,"total_orders":1,"total_addresses":1,"total_distance":0.0,"total_time":40.0},"trips":[{"summary":{"trip_number":1,"total_orders":1,"total_addresses":1,"total_distance":0.0,"total_time":40.0,"co'
+		cJsonRaw += 'de":null,"original_total_distance":0,"original_total_time_human":"00:40"},"driver":null,"peoneta":null,"work_shift_name":null,"approved_at":null,"started_at":null,"ended_at":null,"received_orders_size":0,"available_capacity":null,"available_time":null,"remaining_clearance":null,"results":[{"eta":"07:00","eta_started":null,"eta_mode":0,"deposit":true,"position":0,"real_distance":0.0,"planned_distance":null,"start_distance":null,"stop":{"code":null,"name":"MATRIZ CDD","client":null,"address_type":null,"address":"Sueñolar Ypacarai","reference":null,"city":"Ypacaraí","country":"Paraguay","lat":-25.3967453,"lng":-57.2789019,"service_time":null,"priority":null,"skills":null,"time_windows":null},"orders":[]},{"eta":"07:10","eta_started":null,"eta_mode":0,"deposit":false,"position":1,"real_distance":0.0,"planned_distance":0.0,"start_distance":null,"stop":{"code":"000006","name":"INTERPLANETARIOS LIDER                            ","client":"INTERPLANETARIOS LIDER                            ","address_type":null,"address":"AVENIDA FAROL IRLANDES, 181             ","reference":null,"city":"BARUEBAS       ","country":"ALEMANHA                 ","lat":-23.442503,"lng":-58.443832,"service_time":20,"priority":2,"skills":[],"time_windows":[{"start":"07:00","end":"16:00"}]},"orders":[{"idx":1,"code":"000028","units_1":1.0,"units_2":3.1,"units_3":0.0,"alt_code":null,"custom_1":null,"custom_2":null,"custom_3":null,"custom_4":null,"custom_5":null,"custom_6":null,"custom_7":null,"custom_8":null,"custom_9":null,"custom_10":null,"custom_11":null,"number_1":null,"number_2":null,"number_3":null,"number_4":null,"delivery_date":null,"supp'
+		cJsonRaw += 'lier_code":null,"supplier_name":null,"client_code":null,"client_name":"INTERPLANETARIOS LIDER                            ","contact_name":null,"contact_phone":null,"contact_email":null,"sales_zone_code":null,"sales_zone_name":null,"items":[{"code":"01-01-000007         ","description":"SUPER KOALA SUPERIOR PREMIUM                      ","units":1.0,"units_1":null,"units_2":3.1,"units_3":null,"units_4":0,"requested_units":0.0,"custom_1":null,"custom_2":null,"custom_3":null,"custom_4":null,"custom_5":null,"custom_6":null,"custom_7":null,"custom_8":null,"custom_10":null,"custom_11":null,"custom_12":null,"custom_13":null,"custom_14":null,"custom_15":null,"custom_16":null,"custom_17":null,"custom_18":null,"custom_19":null,"custom_20":null,"number_1":null,"number_2":null,"number_3":null,"number_4":null,"number_5":null,"number_6":null,"number_7":null,"number_8":null,"number_9":null,"number_10":null,"item_contents":[]},{"code":"01-02-000007         ","description":"SUPER KOALA SUPERIOR PREMIUM                      ","units":1.0,"units_1":null,"units_2":3.1,"units_3":null,"units_4":0,"requested_units":0.0,"custom_1":null,"custom_2":null,"custom_3":null,"custom_4":null,"custom_5":null,"custom_6":null,"custom_7":null,"custom_8":null,"custom_10":null,"custom_11":null,"custom_12":null,"custom_13":null,"custom_14":null,"custom_15":null,"custom_16":null,"custom_17":null,"custom_18":null,"custom_19":null,"custom_20":null,"number_1":null,"number_2":null,"number_3":null,"number_4":null,"number_5":null,"number_6":null,"number_7":null,"number_8":null,"number_9":null,"number_10":null,"item_contents":[]}]}]},{"eta":"07:40","eta_starte'
+		cJsonRaw += 'd":null,"eta_mode":0,"deposit":true,"position":2,"real_distance":0.0,"planned_distance":0.0,"start_distance":null,"stop":{"code":null,"name":"MATRIZ CDD","client":null,"address_type":null,"address":"Sueñolar Ypacarai","reference":null,"city":"Ypacaraí","country":"Paraguay","lat":-25.3967453,"lng":-57.2789019,"service_time":null,"priority":null,"skills":null,"time_windows":null},"orders":[]}],"kpis":{"orders_pending":1,"orders_approved":0,"orders_partial":0,"orders_rejected":0,"return_eta":"07:40"}}]}]}'
+	*/
 	oJsonReceb:fromJson(cJsonRaw)
 
 	oRotasTab := FWTemporaryTable():new(cAliasRote, aCamposRed)
@@ -974,39 +980,48 @@ user function omsGrDriv()
 	msgAlert("Depois " + cAliasRote, NOME_FONTE)
 	cAliasRote := oRotasTab:getAlias()
 
+	cQy := "SELECT " + CRLF
+	cQy := "	DAK_COD, " + CRLF
+	cQy := "	DAK_ZCENAR, " + CRLF
+	cQy := "	DAK_ZDRVRT " + CRLF
+	cQy := "FROM " + CRLF
+	cQy := "	DAK990 " + CRLF
+	cQy := "WHERE " + CRLF
+	cQy := "	DAK_FILIAL = '" + fwXFilial("DAK") + "' "
+	cQy := "	AND DAK_ZCENAR = '" + cTokenDt + "' "
+	cQy := "	AND D_E_L_E_T_ = ''; "
+	showLog(cQy)
+	cAliasDAK := getNextAlias()
+	dbUseArea(.T., "TOPCONN", TCGenQry(, , ChangeQuery(cQy)), cAliasDAK, .F., .T.)
+	dbSelectArea(cAliasDAK)
+
 	if 0 < len(oJsonReceb['response'])
 		for nIResponse := 1 to len(oJsonReceb['response'])
+			//marcador de nivel: oJsonReceb['response'][nIResponse]['scenario_token']
 			(cAliasRote)->(dbAppend())
 			(cAliasRote)->ROTA := oJsonReceb['response'][nIResponse]['code']
 			(cAliasRote)->FLEET := oJsonReceb['response'][nIResponse]['fleet_sequence']
 			(cAliasRote)->DEPLOY := sToD(strTran(oJsonReceb['response'][nIResponse]['deploy_date'], "-", ""))
 
-			cQy := "SELECT " + CRLF
-			cQy := "	DAK_ZCENAR, " + CRLF
-			cQy := "FROM " + CRLF
-			cQy := "	DAK990 " + CRLF
-			cQy := "WHERE " + CRLF
-			cQy := "	DAK_FILIAL = '" + fwXFilial("DAK") + "' "
-			cQy := "	AND DAK_ZCENAR = '" + cTokenDt + "' "
-			cQy := "	AND DAK_ZDRVRT = '" + oJsonReceb['response'][nIResponse]['code'] + "'; "
-			showLog(cQy)
-			cAliasDAK := getNextAlias()
-			dbUseArea(.T., "TOPCONN", TCGenQry(, , ChangeQuery(cQy)), cAliasDAK, .F., .T.)
-			dbSelectArea(cAliasDAK)
+			cDAK_COD := space(tamSX3("DAK_COD")[1])
+			nCOMUNIC := 0
 			(cAliasDAK)->(dbGoTop())
-			if (cAliasDAK)->(eOF())
-				(cAliasRote)->COMUNIC := 0
-			else
-				(cAliasRote)->COMUNIC := 1
-			endIf
+			while (cAliasDAK)->(eOF())
+				if (cAliasDAK)->DAK_ZDRVRT == (cAliasRote)->ROTA
+					cDAK_COD := (cAliasDAK)->DAK_COD
+					nCOMUNIC := 1 // significa que tem DAK
+				endIf
+				(cAliasDAK)->(dbSkip())
+			endDo
 
+			(cAliasRote)->DAK_COD := cDAK_COD
+			(cAliasRote)->COMUNIC := nCOMUNIC
 			(cAliasRote)->REC := nIResponse
-			(cAliasRote)->SEL_OK
+			(cAliasRote)->SEL_OK := "  " // juk pensar melhor em como será definido quais cargas serão gravadas. Não pode gravar o que já foi gravado, apenas avisar usuário o que já foi gravado e gravar o resto
 			(cAliasRote)->(dbCommit())
-			(cAliasRote)->(dbSkip())
-			(cAliasDAK)->(dbCloseArea())
 		next nIResponse
 	endIf
+	(cAliasDAK)->(dbCloseArea())
 
 	oMarkBr := jukMarkBrowse():New(aEstrutura, cAliasRote, cCampoIdx, cCampoSel)
 	cAliasTemp := oMarkBr:getAliasTemp()
@@ -1020,15 +1035,28 @@ user function DrvToOMS(cAliasTemp)
 	local oArea			:= fwGetArea()
 	local cItemC9
 	local cPedido
+	local cPedidoAux	:= ""
 	local cItem
 	local cSeq
 	local cProd
 	local cCliente
 	local aCab, aItem
 
+	dbSelectArea("SC9")
+	SC9->(dbSetOrder(1))
+
+	dbSelectArea("SA1")
+	SA1->(dbSetOrder(1))
+
+	dbSelectArea("SC5")
+	SC5->(dbSetOrder(1))
+
 	(cAliasTemp)->(dbGoTop())
 	nIResponse := 1
 	while (cAliasTemp)->(eOF())
+		if (cAliasTemp)->SEL_OK == "  " .or. (cAliasTemp)->COMUNIC == 1
+			loop
+		endIf
 
 		aCab := {;
 			{"DAK_FILIAL",		fwXFilial("DAK"),					Nil}, ;
@@ -1045,84 +1073,80 @@ user function DrvToOMS(cAliasTemp)
 			{"DAK_ACEVAS",		"2",							Nil}, ;
 			{"DAK_ACEFIN",		"2",							Nil}, ;
 			{"DAK_FLGUNI",		"2",							Nil} /*Campo com inicializador padrão  - 2*/, ;
-			{"DAK_TRANSP",		"",								Nil};
+			{"DAK_TRANSP",		"",								Nil}, ;
+			{"DAK_ZCENAR",		cTokenDt,						nil}, ;
+			{"DAK_ZDRVRT",		(cAliasTemp)->ROTA,				nil}, ;
 			}
 		aItem := {}
 
+		// marcador de nivel: cenario = oJsonReceb['response'][nIResponse]['scenario_token']
 		if 0 < len(oJsonReceb['response'][nIResponse]['trips'])
 			for nITrips := 1 to len(oJsonReceb['response'][nIResponse]['trips'])
-
+				// marcador de nivel: viagem/rota = oJsonReceb['response'][nIResponse]['trips'][nITrips]
 				if 0 < len(oJsonReceb['response'][nIResponse]['trips'][nITrips]['results'])
 					for nIResults := 1 to len(oJsonReceb['response'][nIResponse]['trips'][nITrips]['results']) // talvez precise fazer for nIResults := 2 to len() - 1
-
+						// marcador de nivel: parada = oJsonReceb['response'][nIResponse]['trips'][nITrips]['results'][nIResults]
 						if 0 < len(oJsonReceb['response'][nIResponse]['trips'][nITrips]['results'][nIResults]['orders'])
 							for nIOrders := 1 to len(oJsonReceb['response'][nIResponse]['trips'][nITrips]['results'][nIResults]['orders'])
-
+								// marcador de nivel: pedido oJsonReceb['response'][nIResponse]['trips'][nITrips]['results'][nIResults]['orders'][nIOrders]['code']
+								cPedido := oJsonReceb['response'][nIResponse]['trips'][nITrips]['results'][nIResults]['orders'][nIOrders]['code']
 								if 0 < len(oJsonReceb['response'][nIResponse]['trips'][nITrips]['results'][nIResults]['orders'][nIOrders]['items'])
 									for nIItems := 1 to len(oJsonReceb['response'][nIResponse]['trips'][nITrips]['results'][nIResults]['orders'][nIOrders]['items']) // Ufa chegei até aqui \o/
-
+										// marcador de nivel: item de pedido C9
 										cItemC9 := oJsonReceb['response'][nIResponse]['trips'][nITrips]['results'][nIResults]['orders'][nIOrders]['items'][nIItems]['code']
-										cPedido := oJsonReceb['response'][nIResponse]['trips'][nITrips]['results'][nIResults]['orders'][nIOrders]['code']
 										cItem := subStr(cItemC9, 1, tamSX3("C9_ITEM")[1])
 										cSeq := subStr(cItemC9, tamSX3("C9_ITEM")[1] + 2, tamSX3("C9_SEQUEN")[1])
 										cProd := subStr(cItemC9, tamSX3("C9_ITEM")[1] + tamSX3("C9_SEQUEN")[1] + 3, len(cItemC9) - 6)
 										cProd := padR(cProd /*xExp*/, tamSX3("C9_PRODUTO")[1] /*nLen*/, " "/*cFill*/)
 
-										dbSelectArea("SC9")
-										SC9->(dbSetOrder(1))
 										if !SC9->(msSeek(fwXFilial('SC9') + cPedido + cItem + cSeq + cProd + "  " + "  ")) // C9_FILIAL + C9_PEDIDO + C9_ITEM + C9_SEQUEN + C9_PRODUTO + C9_BLEST + C9_BLCRED
 											msgAlert("SC9 não encontrado.", NOME_FONTE)
 											loop
 										endIf
 
-										dbSelectArea("SA1")
-										SA1->(dbSetOrder(1))
 										if !SA1->(msSeek(fwXFilial('SA1') + SC9->C9_CLIENTE + SC9->C9_LOJA)) // A1_FILIAL + A1_COD + A1_LOJA
 											msgAlert("SA1 não encontrado.", NOME_FONTE)
 											loop
 										endIf
 
-										dbSelectArea("SC5")
-										SC5->(dbSetOrder(1))
 										if !SC5->(msSeek(fwXFilial('SC5') + cPedido)) // C5_FILIAL + C5_NUM
 											msgAlert("SC5 não encontrado.", NOME_FONTE)
 											loop
 										endIf
-
-										Aadd(aItem, ;
-											{;
-											aCab[2,2]			/*01 - Código da carga*/, ;
-											"999999"			/*02 - Código da Rota - 999999 (Genérica)*/, ;
-											"999999"			/*03 - Código da Zona - 999999 (Genérica)*/, ;
-											"999999"			/*04-	Código do Setor - 999999 (Genérico)*/, ;
-											SC5->C5_NUM			/*05 - Código do Pedido Venda*/, ;
-											SA1->A1_COD			/*06 - Código do Cliente*/, ;
-											SA1->A1_LOJA		/*07 - Loja do Cliente*/, ;
-											SA1->A1_NOME		/*08 - Nome do Cliente*/, ;
-											SA1->A1_BAIRRO		/*09 - Bairro do Cliente*/, ;
-											SA1->A1_MUN			/*10 - Município do Cliente*/, ;
-											SA1->A1_EST			/*11 - Estado do Cliente*/, ;
-											SC5->C5_FILIAL		/*12 - Filial do Pedido Venda*/, ;
-											SA1->A1_FILIAL		/*13 - Filial do Cliente*/, ;
-											0					/*14 - Peso Total dos Itens (Calculado pelo OMSA200)*/, ;
-											0					/*15 - Volume Total dos Itens (Calculado pelo OMSA200)*/, ;
-											"08:00"				/*16 - Hora Chegada*/, ;
-											"0001:00"			/*17 - Time Service*/, ;
-											Nil					/*18 - Não Usado*/, ;
-											dDatabase			/*19 - Data Chegada*/, ;
-											dDatabase			/*20 - Data Saída*/, ;
-											Nil					/*21 - Não Usado*/, ;
-											Nil					/*22 - Não Usado*/, ;
-											0					/*23 - Valor do Frete*/, ;
-											0					/*24 - Frete Autonomo*/, ;
-											0					/*25 - Valor Total dos Itens (Calculado pelo OMSA200)*/, ;
-											0					/*26 - Quantidade Total dos Itens (Calculado pelo OMSA200)*/, ;
-											Nil					/*27 - Não usado*/, ;
-											"000004"			/*28 - Transportadora redespachante (não obrigatório)*/;
-											})
-											SC5->(dbCloseArea())
-											SA1->(dbCloseArea())
-											SC9->(dbCloseArea())
+										if cPedidoAux != cPedido // juk impede dois aItem para o mesmo pedido
+											Aadd(aItem, ;
+												{;
+												aCab[2,2]			/*01 - Código da carga*/, ;
+												"999999"			/*02 - Código da Rota - 999999 (Genérica)*/, ;
+												"999999"			/*03 - Código da Zona - 999999 (Genérica)*/, ;
+												"999999"			/*04-	Código do Setor - 999999 (Genérico)*/, ;
+												SC5->C5_NUM			/*05 - Código do Pedido Venda*/, ;
+												SA1->A1_COD			/*06 - Código do Cliente*/, ;
+												SA1->A1_LOJA		/*07 - Loja do Cliente*/, ;
+												SA1->A1_NOME		/*08 - Nome do Cliente*/, ;
+												SA1->A1_BAIRRO		/*09 - Bairro do Cliente*/, ;
+												SA1->A1_MUN			/*10 - Município do Cliente*/, ;
+												SA1->A1_EST			/*11 - Estado do Cliente*/, ;
+												SC5->C5_FILIAL		/*12 - Filial do Pedido Venda*/, ;
+												SA1->A1_FILIAL		/*13 - Filial do Cliente*/, ;
+												0					/*14 - Peso Total dos Itens (Calculado pelo OMSA200)*/, ;
+												0					/*15 - Volume Total dos Itens (Calculado pelo OMSA200)*/, ;
+												"08:00"				/*16 - Hora Chegada*/, ;
+												"0001:00"			/*17 - Time Service*/, ;
+												Nil					/*18 - Não Usado*/, ;
+												dDatabase			/*19 - Data Chegada*/, ;
+												dDatabase			/*20 - Data Saída*/, ;
+												Nil					/*21 - Não Usado*/, ;
+												Nil					/*22 - Não Usado*/, ;
+												0					/*23 - Valor do Frete*/, ;
+												0					/*24 - Frete Autonomo*/, ;
+												0					/*25 - Valor Total dos Itens (Calculado pelo OMSA200)*/, ;
+												0					/*26 - Quantidade Total dos Itens (Calculado pelo OMSA200)*/, ;
+												Nil					/*27 - Não usado*/, ;
+												"000004"			/*28 - Transportadora redespachante (não obrigatório)*/;
+												})
+											cPedidoAux = cPedido
+										endIf
 									next nIItems
 								endIf
 
@@ -1138,5 +1162,19 @@ user function DrvToOMS(cAliasTemp)
 		(cAliasTemp)->(dbSkip())
 		nIResponse += 1
 	endDo
+
+	MSExecAuto( { |x, y, z| OMSA200(x, y, z) }, aCab, aItem, 3 )
+	If lMsErroAuto
+		Alert("Erro no ExecAuto do OMSA200")
+		cMsgErro := MostraErro()
+		DisarmTransaction()
+		Alert(cMsgErro)
+	Else
+		Alert("Sucesso na execução do ExecAuto OMSA200")
+	EndIf
+
+	SC5->(dbCloseArea())
+	SA1->(dbCloseArea())
+	SC9->(dbCloseArea())
 	fwRestArea(oArea)
 return
