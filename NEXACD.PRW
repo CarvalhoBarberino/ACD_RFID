@@ -3,7 +3,7 @@
 
 #DEFINE NOME_FONTE		"NEXACD.PRW"
 #DEFINE BEARER_TOKEN	""
-#DEFINE API_KEY			"647fbc3a-9e8d-49b8-ba28-b5ec3d72b673"
+
 #DEFINE ORACLE
 
 /*/{Protheus.doc} aptProd
@@ -15,19 +15,19 @@
 /*/
 user function aptProd(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cSerie, cTags)
 	local aVetor
-	local aRet				:= {.T., "gravou Ok"}
+	local aRet				:= {.F., "Erro: O apontamento de produção não terminou"}
 	local nOpc				:= 3
 
 	conOut("user function U_aptProd INICIO " + NOME_FONTE)
 
 	aVetor := {;
-		{"D3_OP",			cOp,				NIL},;
-		{"D3_TM",			"010",				NIL},;
-		{"D3_COD",			cCodProd,			NIL},;
-		{"D3_DESCRI",		cDescr,				NIL},;
-		{"D3_LOCAL",		cArmazem,			NIL},;
-		{"D3_LOTECTL",		cLote,				NIL},;
-		{"D3_QUANT",		nQuant,				NIL};
+		{"D3_OP",			cOp,								NIL},;
+		{"D3_TM",			superGetMV("SU_TMAPT", .F.),		NIL},;
+		{"D3_COD",			cCodProd,							NIL},;
+		{"D3_DESCRI",		cDescr,								NIL},;
+		{"D3_LOCAL",		cArmazem,							NIL},;
+		{"D3_LOTECTL",		cLote,								NIL},;
+		{"D3_QUANT",		nQuant,								NIL};
 		}
 
 	conOut(VarInfo("aVetor", aVetor, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
@@ -40,8 +40,10 @@ user function aptProd(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cS
 		aRet[1] := .F.
 		aRet[2] := mostraErro("\temp\erro.txt")
 		conOut(VarInfo("aRet", aRet, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
+		return aRet
 	endIf
 
+	aRet := {.T., "gravou Ok"}
 	conOut("user function U_aptProd FIM ok " + NOME_FONTE)
 return aRet
 
@@ -54,7 +56,7 @@ return aRet
 /*/
 user function endereca(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cSerie, cTags)
 	local oArea				:= fwGetArea()
-	local aRet				:= {.T., ""}
+	local aRet				:= {.F., "Erro: O endereçamento não terminou"}
 	local cQy				:= ""
 	local cAliasD3			:= getNextAlias()
 	local cNumseq
@@ -74,7 +76,11 @@ user function endereca(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, c
 		return aRet
 	endIf
 
-	cQy += "SELECT TOP 1 " + CRLF
+	#IFDEF ORACLE
+		cQy += "SELECT " + CRLF
+	#ELSE
+		cQy += "SELECT TOP 1 " + CRLF
+	#ENDIF
 	cQy += "	D3_NUMSEQ " + CRLF
 	cQy += "FROM " + CRLF
 	cQy += "	" + retSqlName("SD3") + " " + CRLF
@@ -86,6 +92,9 @@ user function endereca(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, c
 	cQy += "	AND D3_CF = 'PR0' " + CRLF
 	cQy += "ORDER BY " + CRLF
 	cQy += "	R_E_C_N_O_ DESC "
+	#IFDEF ORACLE
+		cQy += "FETCH FIRST 1 ROW ONLY " + CRLF
+	#ENDIF
 	conOut(cQy)
 	dbUseArea(.T., "TOPCONN", TCGenQry(, , cQy), cAliasD3, .T., .T.)
 	dbSelectArea(cAliasD3)
@@ -312,7 +321,7 @@ user function opToSegel()
 	local aHeader		:= {}
 	local cCodProd		:= allTrim(SC2->C2_PRODUTO)
 	local cOp			:= allTrim(SC2->C2_NUM + SC2->C2_ITEM + SC2->C2_SEQUEN)
-	local cUrl			:= "localhost:8080" // juk Criar parametro para estes enderecos
+	local cUrl			:= superGetMV("SU_DIAPIUR", .T.)
 	local cPath			:= "/rest/nexsolucoes/production_order"
 	local lRetOk
 	local oRestClient	:= FWRest():New(cUrl) // https://tdn.totvs.com/display/public/framework/FWRest
@@ -845,9 +854,9 @@ return
 
 static function getTokenDt(dDtentrega)
 	local cDtEntrega	:= dToS(dDtentrega)
-	local cUrl			:= "https://external-qa.driv.in/api/external/v2" // juk Criar parametro para estes enderecos
-	local cPath			:= "/scenarios?date=" + subStr(cDtEntrega, 1, 4) + "-" + subStr(cDtEntrega, 5, 2) + "-" + subStr(cDtEntrega, 7, 2) // exemplo "/scenarios?date=2026-07-25"
-	local cApiKey		:= API_KEY
+	local cUrl			:= superGetMV("SU_DIAPIUR", .T.)
+	local cPath			:= superGetMV("SU_DICENAR", .T.) + "date=" + subStr(cDtEntrega, 1, 4) + "-" + subStr(cDtEntrega, 5, 2) + "-" + subStr(cDtEntrega, 7, 2)
+	local cApiKey		:= superGetMV("SU_DIAPIKE", .T.)
 	local oRestClient	:= FWRest():New(cUrl) // https://tdn.totvs.com/display/public/framework/FWRest
 	local aHeader		:= {}
 	local lRetOk
@@ -880,9 +889,9 @@ static function getTokenDt(dDtentrega)
 return oJResposta['response']
 
 static function postPedido(cToken, oDtEntrega)
-	local cUrl			:= "https://external-qa.driv.in/api/external/v2" // juk Criar parametro para estes enderecos
-	local cPath			:= "/orders?token=" + cToken
-	local cApiKey		:= API_KEY
+	local cUrl			:= superGetMV("SU_DIAPIUR", .T.)
+	local cPath			:= superGetMV("SU_DIORDER", .T.) + "token=" + cToken
+	local cApiKey		:= superGetMV("SU_DIAPIKE", .T.)
 	local oRestClient	:= FWRest():New(cUrl) // https://tdn.totvs.com/display/public/framework/FWRest
 	local aHeader		:= {}
 	local cRet
@@ -903,12 +912,12 @@ static function postPedido(cToken, oDtEntrega)
 return {.t., cRet}
 
 user function omsGrDriv()
-	local cUrl			:= "https://external-qa.driv.in/api/external/v2" // juk Criar parametro para estes enderecos
+	local cUrl			:= superGetMV("SU_DIAPIUR", .T.)
 	local cPath
 	local aResp			:= {}
 	local aTokensDt
 	local oRestClient	:= FWRest():New(cUrl) // https://tdn.totvs.com/display/public/framework/FWRest
-	local cApiKey		:= API_KEY
+	local cApiKey		:= superGetMV("SU_DIAPIKE", .T.)
 	local aHeader		:= {"X-API-Key: " + cApiKey, "Content-Type: application/json"}
 	local oJsonReceb	:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
 	local cJsonRaw
@@ -953,7 +962,7 @@ user function omsGrDriv()
 	dDtentrega := aResp[1]
 	aTokensDt := getTokenDt(dDtentrega)
 	cTokenDt := escolheTk(aTokensDt)
-	cPath := "/results?token=" + cTokenDt + "&unassigned=1"
+	cPath := superGetMV("SU_DIRESUL", .T.) + "token=" + cTokenDt + "&unassigned=1"
 	oRestClient:SetPath(cPath)
 	if oRestClient:get(aHeader)
 		showLog(oRestClient:getResult())
@@ -1178,3 +1187,29 @@ user function DrvToOMS(cAliasTemp)
 	SC9->(dbCloseArea())
 	fwRestArea(oArea)
 return
+
+user function OM200CAR()
+	// https://tdn.totvs.com/pages/releaseview.action?pageId=600804956
+	local cQuery := PARAMIXB[1]
+
+	showLog(cQuery)
+	if FWIsInCallStack("U_DrvToOMS") .or. FWIsInCallStack("U_jukTest") // juk retirar o trecho .or. FWIsInCallStack("U_jukTest")
+		cQuery := strTran(cQuery, " ORDER BY", " AND SC9.C9_DATENT = '" + dToS(dDateC9) + "' ORDER BY")
+	endIf
+	showLog(cQuery)
+return cQuery
+
+user function OM200QRY()
+	// https://tdn.totvs.com/display/public/PROT/DT+PE+OM200QRY+-+Filtro+dos+pedidos+apresentados+na+tela+de+montagem+de+carga
+	// https://tdn.totvs.com/pages/releaseview.action?pageId=600804368
+	local cQuery		:= PARAMIXB[1] //Query para a manutenção
+	local aArrayTipo	:= PARAMIXB[2] //Tipos de carga selecionados
+	local aArrayMod		:= PARAMIXB[3] //Modelos de carga
+	local nQuery		:= PARAMIXB[4] //Número da query no UNION (1,2)
+
+	showLog(cQuery)
+	if nQuery == 2 .and. FWIsInCallStack("U_DrvToOMS") .or. FWIsInCallStack("U_jukTest") // juk retirar o trecho .or. FWIsInCallStack("U_jukTest")
+		cQuery += " AND SC9.C9_DATENT = '" + dToS(dDateC9) + "'"
+	endIf
+	showLog(cQuery)
+return cQuery

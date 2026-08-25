@@ -10,7 +10,7 @@
 WSRESTFUL nexSolucoes DESCRIPTION "webService com os metodos da NEX Solucoes" // https://tdn.totvs.com/display/public/framework/02.+Criando+uma+classe+REST https://terminaldeinformacao.com/2024/07/13/criando-um-webservice-rest-com-wsrestful-maratona-advpl-e-tl-535/
 
 	WSMETHOD POST apontamento_producao DESCRIPTION "Endpoint Protheus dedicado a receber e registrar apontamentos de producao" PATH "/production_add"
-	WSMETHOD POST Teste_production_order DESCRIPTION "Endpoint para testar a funcao opToSegel" PATH "/production_order"
+	WSMETHOD POST chamaBlock DESCRIPTION "Endpoint para chamaBlock" PATH "/chamaBlock"
 
 END WSRESTFUL
 
@@ -58,6 +58,7 @@ WSMETHOD POST apontamento_producao WSSERVICE nexSolucoes
 	cTags		:= oJsonReceb:GetJsonObject("tags")
 
 	BEGIN TRANSACTION
+		aExecAut := {.F., "Erro: U_aptProd não terminou"}
 		aExecAut := U_aptProd(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cSerie, cTags)
 		conOut(VarInfo("U_aptProd aExecAut", aExecAut, /*espacamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
 		if !aExecAut[1]
@@ -74,6 +75,7 @@ WSMETHOD POST apontamento_producao WSSERVICE nexSolucoes
 		endIf
 		oJsonRet["U_aptProd"] := aExecAut[2]
 		conOut("linha 85")
+		aExecAut := {.F., "Erro: U_endereca não terminou"}
 		aExecAut := U_endereca(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cSerie, cTags)
 		conOut(VarInfo("U_endereca aExecAut", aExecAut, /*espacamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
 		if !aExecAut[1]
@@ -100,11 +102,21 @@ WSMETHOD POST apontamento_producao WSSERVICE nexSolucoes
 	conOut("POST apontamento_producao WSSERVICE nexSolucoes FIM ok " + NOME_FONTE)
 return .T.
 
-WSMETHOD POST Teste_production_order WSSERVICE nexSolucoes
-	local cConteudo		:= self:getContent()
-	conOut("POST Teste_production_order WSSERVICE nexSolucoes INICIO " + NOME_FONTE)
-	conOut(cConteudo)
-	self:setResponse(ENCODEUTF8("POST Teste_production_order Ok"))
+WSMETHOD POST chamaBlock WSSERVICE nexSolucoes
+	local bBlock
+	local aParams
+	local cRet			:= "texto qualquer 1522"
+	local oJson0		:= jsonObject():new()
+	local oJson1		:= jsonObject():new()
+
+	oJson0:fromJson(self:getContent())
+	bBlock := &(oJson0['bBlock'])
+	aParams := &(oJson0['aParams'])
+
+	if valType(bBlock) == "B" .and. valType(aParams) == "A"
+		cRet := cValToChar(eval(bBlock, aParams))
+	endIf
+
+	self:setResponse(ENCODEUTF8(cRet))
 	self:setStatus(201)
-	conOut("POST Teste_production_order WSSERVICE nexSolucoes FIM " + NOME_FONTE)
 return .T.

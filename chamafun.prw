@@ -73,9 +73,8 @@ return
 
 
 
-/*
-	Funções publicadas no site https://terminaldeinformacao.com/2018/02/13/funcao-para-executar-formulas-protheus-12/
-*/
+
+
 
 /*/{Protheus.doc} zMiniForm
 Funcao Mini Formulas, para executar formulas
@@ -85,8 +84,7 @@ Funcao Mini Formulas, para executar formulas
 @type function
 @obs Assim como o formulas foi bloqueado no Protheus 12, cuidado ao deixar exposto no menu o Mini Formulas
 /*/
-
-User Function zMiniForm()
+User Function zMiniForm() // Funções publicadas no site https://terminaldeinformacao.com/2018/02/13/funcao-para-executar-formulas-protheus-12/
 	Local aArea := GetArea()
 	//Variaveis da tela
 	Private oDlgForm
