@@ -41,7 +41,11 @@ LOCAL aSB1Area           := SB1->( GetArea() ),;
                               Space( 0 )                                                     /* ZA2->ZA2_SERIES */,;
                               CToD( Space( 0 ) )                                             /* ZA2->ZA2_DATED */;
                             },;
-      cTransactionId     
+      cTransactionId   
+
+	if FWIsInCallStack("U_aptProd")
+		return nil
+	endIf
 
 cTransactionId := aSourceTransaction[1] + aSourceTransaction[2] + aSourceTransaction[3] + DToS( aSourceTransaction[4] ) + aSourceTransaction[5]
 

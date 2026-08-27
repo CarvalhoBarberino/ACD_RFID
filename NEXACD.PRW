@@ -2,7 +2,6 @@
 #INCLUDE "RWMAKE.CH"
 
 #DEFINE NOME_FONTE		"NEXACD.PRW"
-#DEFINE BEARER_TOKEN	""
 
 #DEFINE ORACLE
 
@@ -18,8 +17,6 @@ user function aptProd(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cS
 	local aRet				:= {.F., "Erro: O apontamento de produção não terminou"}
 	local nOpc				:= 3
 
-	conOut("user function U_aptProd INICIO " + NOME_FONTE)
-
 	aVetor := {;
 		{"D3_OP",			cOp,								NIL},;
 		{"D3_TM",			superGetMV("SU_TMAPT", .F.),		NIL},;
@@ -30,21 +27,16 @@ user function aptProd(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cS
 		{"D3_QUANT",		nQuant,								NIL};
 		}
 
-	conOut(VarInfo("aVetor", aVetor, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
-
 	lMsErroAuto		:= .F.
 	MSExecAuto({|x, y| mata250(x, y)}, aVetor, nOpc)
 
 	if lMsErroAuto
-		conOut("linha 28")
 		aRet[1] := .F.
 		aRet[2] := mostraErro("\temp\erro.txt")
-		conOut(VarInfo("aRet", aRet, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
 		return aRet
 	endIf
 
 	aRet := {.T., "gravou Ok"}
-	conOut("user function U_aptProd FIM ok " + NOME_FONTE)
 return aRet
 
 /*/{Protheus.doc} endereca
@@ -66,12 +58,9 @@ user function endereca(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, c
 	local cAptEnd			:= superGetMV("NX_APTEND", .F., "APT")
 	private lMsErroAuto
 
-	conOut("user function U_endereca INICIO " + NOME_FONTE)
-
 	if "N" == posicione("SB1", 1, cFilia + cCodProd, "B1_LOCALIZ") // B1_FILIAL + B1_COD
 		aRet[1] := .T.
 		aRet[2] := "não endereçar"
-		conOut(aRet[2] + " " + NOME_FONTE)
 		fwRestArea(oArea)
 		return aRet
 	endIf
@@ -95,13 +84,11 @@ user function endereca(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, c
 	#IFDEF ORACLE
 		cQy += "FETCH FIRST 1 ROW ONLY " + CRLF
 	#ENDIF
-	conOut(cQy)
 	dbUseArea(.T., "TOPCONN", TCGenQry(, , cQy), cAliasD3, .T., .T.)
 	dbSelectArea(cAliasD3)
 	(cAliasD3)->(dbGoTop())
 	cNumseq := alltrim((cAliasD3)->D3_NUMSEQ)
 	(cAliasD3)->(dbCloseArea())
-	conOut(cNumseq)
 
 	//Cabecalho com a informação do item e NumSeq que sera endereçado.
 	aCabSDA := {;
@@ -119,26 +106,18 @@ user function endereca(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, c
 		{"DB_ZB0COD",		cTags,			Nil};
 		}
 	aadd(aItensSDB,aitSDB)
-	conOut(VarInfo("aCabSDA", aCabSDA, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
-	conOut(VarInfo("aItensSDB", aItensSDB, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
 	//Executa o endere?amento do item
 	lMsErroAuto := .F.
 	MATA265(aCabSDA, aItensSDB, 3) // Necessita declara antes (lá em cima) private lMsErroAuto
-	conOut(VarInfo("lMsErroAuto", lMsErroAuto, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
 	if lMsErroAuto
-		conOut("linha 100")
 		aRet[1] := .F.
 		aRet[2] := mostraErro("\temp\erro.txt")
-		conOut(VarInfo("aRet", aRet, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
-		conOut("user function U_endereca FIM erro " + NOME_FONTE)
 		fwRestArea(oArea)
 		return aRet
 	endIf
 
 	aRet[1] := .T.
-	aRet[2] := posicione("SDB", 1, cFilia + padR(cCodProd, tamSx3("DB_PRODUTO")[1], " ") + cArmazem + cNumseq + cOp, "DB_LOCALIZ") // DB_FILIAL + DB_PRODUTO + DB_LOCAL + DB_NUMSEQ + DB_DOC
-	conOut("linha 111")
-	conOut("user function U_endereca FIM ok " + NOME_FONTE)
+	aRet[2] := "gravou Ok" // posicione("SDB", 1, cFilia + padR(cCodProd, tamSx3("DB_PRODUTO")[1], " ") + cArmazem + cNumseq + cOp, "DB_LOCALIZ") // DB_FILIAL + DB_PRODUTO + DB_LOCAL + DB_NUMSEQ + DB_DOC
 	fwRestArea(oArea)
 return aRet
 
@@ -178,8 +157,6 @@ Exemplo de vetor que a função espera receber:
 	local oArea				:= fwGetArea()
 
 	if valType(aDadosZB0) <> "A"
-		conout("O tipo de dados deveria ser um Array" + NOME_FONTE + " Ocorreu um erro ao gravar ZB0")
-		msgAlert("O tipo de dados deveria ser um Array", NOME_FONTE + " Ocorreu um erro ao gravar ZB0")
 		return .F.
 	endIf
 
@@ -198,25 +175,12 @@ Exemplo de vetor que a função espera receber:
 
 	recLock('ZB0',.T.)
 	for nI := 1 to len(aDadosZB0)
-		If len(tamSx3(aDadosZB0[nI][1])) == 0
-			conOut("O campo " + aDadosZB0[nI][1] + " não existe." + NOME_FONTE + " Ocorreu um erro ao gravar ZB0")
-			msgAlert("O campo " + aDadosZB0[nI][1] + " não existe.", NOME_FONTE + " Ocorreu um erro ao gravar ZB0")
-		endIf
 		cTipoEsperado := tamSx3(aDadosZB0[nI][1])[3]
 		cTipoRecebido := valType(aDadosZB0[nI][2])
 		lTipoIgual := (cTipoRecebido == cTipoEsperado)
 		lTamanhoOk := iif(cTipoRecebido == "C", len(aDadosZB0[nI][2]) <= tamSx3(aDadosZB0[nI][1])[1], .T.)
 		If lTipoIgual .and. lTamanhoOk
 			ZB0->&(aDadosZB0[nI][1]) := aDadosZB0[nI][2]
-		Else
-			conOut("O campo " + aDadosZB0[nI][1] + " não foi gravado." + CRLF + ;
-				"Tipo esperado: " + cTipoEsperado + CRLF + "Tipo recebido: " + cTipoRecebido + CRLF + ;
-				"Tamanho esperado: " + str(tamSx3(aDadosZB0[nI][1])[1], 4, 0) + "Tamanho recebido: " + str(len(aDadosZB0[nI][2]), 4, 0) + ;
-				NOME_FONTE + " Ocorreu um erro ao gravar ZB0")
-			msgAlert("O campo " + aDadosZB0[nI][1] + " não foi gravado." + CRLF + ;
-				"Tipo esperado: " + cTipoEsperado + CRLF + "Tipo recebido: " + cTipoRecebido + CRLF + ;
-				"Tamanho esperado: " + str(tamSx3(aDadosZB0[nI][1])[1], 4, 0) + "Tamanho recebido: " + str(len(aDadosZB0[nI][2]), 4, 0), ;
-				NOME_FONTE + " Ocorreu um erro ao gravar ZB0")
 		endIf
 	next
 	msUnLock()
@@ -234,7 +198,6 @@ user function MTA265I()
 	local aDadosZB0
 	local oArea
 	if !empty(allTrim(SDB->DB_ZB0COD))
-		conOut(NOME_FONTE + "ZB0_CODETI: " + SDB->DB_ZB0COD)
 		oArea := fwGetArea()
 		aDadosZB0 := {;
 			{"ZB0_CODETI",		SDB->DB_ZB0COD}, ;
@@ -321,13 +284,12 @@ user function opToSegel()
 	local aHeader		:= {}
 	local cCodProd		:= allTrim(SC2->C2_PRODUTO)
 	local cOp			:= allTrim(SC2->C2_NUM + SC2->C2_ITEM + SC2->C2_SEQUEN)
-	local cUrl			:= superGetMV("SU_DIAPIUR", .T.)
-	local cPath			:= "/rest/nexsolucoes/production_order"
+	local cUrl			:= "http://192.168.0.3:8000" // juk usar parametros
+	local cPath			:= "/api/production_order" // juk usar parametros
 	local lRetOk
 	local oRestClient	:= FWRest():New(cUrl) // https://tdn.totvs.com/display/public/framework/FWRest
-	local oJReq			:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
+	local OJson0		:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
 	local cRet			:= ""
-	local cToken		:= BEARER_TOKEN
 
 	dbSelectArea("SB1")
 	SB1->(dbSetOrder(1)) // B1_FILIAL + B1_COD
@@ -364,20 +326,21 @@ user function opToSegel()
 		"familia": "ASP"
 	}
 */
-	oJReq["filial"] := SC2->C2_FILIAL
-	oJReq["op"] := cOp
-	oJReq["cod_prod"] := cCodProd
-	oJReq["descricao"] := allTrim(SB1->B1_DESC)
-	oJReq["local"] := SC2->C2_LOCAL
-	oJReq["lote"] := cOp
-	oJReq["qtd"] := SC2->C2_QUANT
-	oJReq["familia"] := "teste" // juk precisa descobrir o nome do campo customizado que já existe na SB1 da Suenolar
+	OJson0["filial"] := SC2->C2_FILIAL
+	OJson0["op"] := cOp
+	OJson0["cod_prod"] := cCodProd
+	OJson0["descricao"] := allTrim(SB1->B1_DESC)
+	OJson0["local"] := SC2->C2_LOCAL
+	OJson0["lote"] := cOp
+	OJson0["qtd"] := SC2->C2_QUANT
+	OJson0["familia"] := SB1->B1_MARCA + SB1->B1_FAMILY // juk precisa descobrir o nome do campo customizado que já existe na SB1 da Suenolar
 
 	Aadd(aHeader, "Content-Type: application/json")
-	Aadd(aHeader, "Authorization: Bearer " + cToken)
+	Aadd(aHeader, "Authorization: Basic " + encode64(superGetMV("SU_USRSEGE", .T., "SuperEu") + ":" + superGetMV("SU_PSWSEGE", .T., "Teste@123")))
+	//Aadd(aHeader, "Authorization: Basic b3BlcmFkb3JAY2xpZW50ZS5jb206cGFzc3dvcmQ=")
 	//Aadd(aHeader, "Authorization: Basic " + Encode64("app01:fTdUlDgdQQ4MRQhLahykiKhON6k97Zfly5SV6fwpa5zCE"))
 	oRestClient:SetPath(cPath)
-	oRestClient:SetPostParams(oJReq:ToJson())
+	oRestClient:SetPostParams(OJson0:ToJson())
 
 	lRetOk := oRestClient:post(aHeader)
 	if lRetOk
@@ -386,10 +349,9 @@ user function opToSegel()
 		cRet += "ERRINHO " + oRestClient:getLastError()
 	endIf
 
-	msgAlert(cRet, NOME_FONTE) // juk Continuar daqui. Precisa decidir o que fazer com a informação de retorno. Precisa criar campo na SC2 pra guardar o retorno
+	showLog(cRet) // juk Continuar daqui. Precisa decidir o que fazer com a informação de retorno. Precisa criar campo na SC2 pra guardar o retorno
 
 	fwRestArea(oArea)
-	conOut("opToSegel() FIM" + NOME_FONTE)
 return
 
 user function C9DrivIn()
@@ -603,8 +565,6 @@ user function goDrvIn(cAliasTemp)
 	aAdd(aClientes, oCliente)
 	oDtEntrega['clients'] := aClientes
 
-	conOut("goDrvIn() INICIO" + NOME_FONTE)
-
 	(cAliasTemp)->(dbGoTop())
 	while !(cAliasTemp)->(eOF())
 		if (cAliasTemp)->SEL_OK == "  "
@@ -742,7 +702,6 @@ user function goDrvIn(cAliasTemp)
 		endIf
 	next nI
 	oMarkBrowse:refresh(.F.)
-	conOut("goDrvIn() FIM" + NOME_FONTE)
 return
 
 static function escolheTk(aTokensDt)

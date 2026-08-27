@@ -18,6 +18,10 @@ USER FUNCTION MT250TOK()
 
 LOCAL lRet := .F.
 
+	if FWIsInCallStack("U_aptProd")
+		return .T.
+	endIf
+
 IF Posicione( "SB1", 1, xFilial( "SB1" ) + M->D3_COD, "SB1->B1_VALSERI" ) = "S" .AND. (Empty( M->D3_INISERI ) .OR. Empty( M->D3_NUMSERF ))
  
    Help( Space( 1 ), 1, "SERIESISEMPTY" )
