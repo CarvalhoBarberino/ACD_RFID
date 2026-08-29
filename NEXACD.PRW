@@ -6,11 +6,15 @@
 #DEFINE ORACLE
 
 /*/{Protheus.doc} aptProd
-	Funcao faz apontamento de producao. Eh chamado pelo webservice nexSolucoes
-	@type user function
-	@author Julio Carvalho Barberino
-	@since 09/07/2026
-	@version 0
+Funcao faz apontamento de producao. Eh chamado pelo webservice nexSolucoes
+@type user function
+@author Julio Carvalho Barberino
+@since 09/07/2026
+@version 0
+@param nBase, numérico, Medida do lado ou da base
+@param [nAltura], numérico, Medida da altura
+@param [nBaseMenor], numérico, Medida da base menor (trapézios)
+@return numérico, Área calculada
 /*/
 user function aptProd(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cSerie, cTags)
 	local aVetor
@@ -24,7 +28,8 @@ user function aptProd(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cS
 		{"D3_DESCRI",		cDescr,								NIL},;
 		{"D3_LOCAL",		cArmazem,							NIL},;
 		{"D3_LOTECTL",		cLote,								NIL},;
-		{"D3_QUANT",		nQuant,								NIL};
+		{"D3_QUANT",		nQuant,								NIL},;
+		{"D3_ZB0COD",		cTags,								NIL};
 		}
 
 	lMsErroAuto		:= .F.
@@ -40,11 +45,15 @@ user function aptProd(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cS
 return aRet
 
 /*/{Protheus.doc} endereca
-	Funcao faz enderecamento lotes recem produzidos. Eh chamado pelo webservice nexSolucoes
-	@type user function
-	@author Julio Carvalho Barberino
-	@since 10/07/2026
-	@version 0
+Funcao faz enderecamento lotes recem produzidos. Eh chamado pelo webservice nexSolucoes
+@type user function
+@author Julio Carvalho Barberino
+@since 10/07/2026
+@version 0
+@param nBase, numérico, Medida do lado ou da base
+@param [nAltura], numérico, Medida da altura
+@param [nBaseMenor], numérico, Medida da base menor (trapézios)
+@return numérico, Área calculada
 /*/
 user function endereca(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cSerie, cTags)
 	local oArea				:= fwGetArea()
@@ -122,11 +131,15 @@ user function endereca(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, c
 return aRet
 
 /*/{Protheus.doc} criarZB0
-	Funcao registra dados na tabela ZB0. Eh chamado no ponto de entrada MTA265I
-	@type user function
-	@author Julio Carvalho Barberino
-	@since 20/07/2026
-	@version 0
+Funcao registra dados na tabela ZB0. Eh chamado no ponto de entrada MTA265I
+@type user function
+@author Julio Carvalho Barberino
+@since 20/07/2026
+@version 0
+@param nBase, numérico, Medida do lado ou da base
+@param [nAltura], numérico, Medida da altura
+@param [nBaseMenor], numérico, Medida da base menor (trapézios)
+@return numérico, Área calculada
 /*/
 user function criarZB0(aDadosZB0)
 /*
@@ -188,11 +201,15 @@ Exemplo de vetor que a função espera receber:
 return cNumDisponivel
 
 /*/{Protheus.doc} MTA265I
-	Ponto de entrada chamado durante o enderecamento https://tdn.totvs.com/pages/releaseview.action?pageId=6087816
-	@type user function
-	@author Julio Carvalho Barberino
-	@since 09/07/2026
-	@version 0
+Ponto de entrada chamado durante o enderecamento https://tdn.totvs.com/pages/releaseview.action?pageId=6087816
+@type user function
+@author Julio Carvalho Barberino
+@since 09/07/2026
+@version 0
+@param nBase, numérico, Medida do lado ou da base
+@param [nAltura], numérico, Medida da altura
+@param [nBaseMenor], numérico, Medida da base menor (trapézios)
+@return numérico, Área calculada
 /*/
 user function MTA265I()
 	local aDadosZB0
@@ -220,11 +237,15 @@ user function MTA265I()
 return
 
 /*/{Protheus.doc} CBRETEAN
-	Ponto de entrada chamado quando faz leitura do codigo de barras no coletor
-	@type user function
-	@author Julio Carvalho Barberino
-	@since 14/07/2026
-	@version 0
+Ponto de entrada chamado quando faz leitura do codigo de barras no coletor https://tdn.totvs.com/pages/releaseview.action?pageId=6091038
+@type user function
+@author Julio Carvalho Barberino
+@since 14/07/2026
+@version 0
+@param nBase, numérico, Medida do lado ou da base
+@param [nAltura], numérico, Medida da altura
+@param [nBaseMenor], numérico, Medida da base menor (trapézios)
+@return numérico, Área calculada
 /*/
 user function CBRETEAN()
 	local oArea				:= fwGetArea()
@@ -248,11 +269,15 @@ user function CBRETEAN()
 return aRet // Espera devolver aRet = {"Código do Produto","Quantidade(Embalagem normalmente analisado na nQE := SB1->B1_QE no processo padrão)","Lote","Data de Validade","Número de Série","Endereço Destino"}
 
 /*/{Protheus.doc} MTA650MNU
-	Ponto de entrada chamado no carregamento de opcoes da rotina Ordem de Producao https://tdn.totvs.com/display/public/PROT/MTA650MNU
-	@type user function
-	@author Julio Carvalho Barberino
-	@since 20/07/2026
-	@version 0
+Ponto de entrada chamado no carregamento de opcoes da rotina Ordem de Producao https://tdn.totvs.com/display/public/PROT/MTA650MNU
+@type user function
+@author Julio Carvalho Barberino
+@since 20/07/2026
+@version 0
+@param nBase, numérico, Medida do lado ou da base
+@param [nAltura], numérico, Medida da altura
+@param [nBaseMenor], numérico, Medida da base menor (trapézios)
+@return numérico, Área calculada
 /*/
 user function MTA650MNU()
 /*
@@ -272,12 +297,16 @@ Estrutura do vetor aRotina:
 	aAdd(aRotina, {'Envia Op p/ SEGEL', 'U_opToSegel()', 0, 4 })
 return
 
-/*/{Protheus.doc} MTA650MNU
-	Ponto de entrada chamado no carregamento de opcoes da rotina Ordem de Producao https://tdn.totvs.com/display/public/PROT/MTA650MNU
-	@type user function
-	@author Julio Carvalho Barberino
-	@since 20/07/2026
-	@version 0
+/*/{Protheus.doc} opToSegel
+Rotina que envia ordem de produção para o end point da SEGEL
+@type user function
+@author Julio Carvalho Barberino
+@since 20/07/2026
+@version 0
+@param nBase, numérico, Medida do lado ou da base
+@param [nAltura], numérico, Medida da altura
+@param [nBaseMenor], numérico, Medida da base menor (trapézios)
+@return numérico, Área calculada
 /*/
 user function opToSegel()
 	local oArea			:= fwGetArea()
@@ -333,20 +362,26 @@ user function opToSegel()
 	OJson0["local"] := SC2->C2_LOCAL
 	OJson0["lote"] := cOp
 	OJson0["qtd"] := SC2->C2_QUANT
-	OJson0["familia"] := SB1->B1_MARCA + SB1->B1_FAMILY // juk precisa descobrir o nome do campo customizado que já existe na SB1 da Suenolar
+	OJson0["familia"] := allTrim(SB1->B1_MARCA) + allTrim(SB1->B1_FAMILY)
 
+	cJson0 := OJson0:ToJson()
+	showLog(cJson0)
 	Aadd(aHeader, "Content-Type: application/json")
 	Aadd(aHeader, "Authorization: Basic " + encode64(superGetMV("SU_USRSEGE", .T., "SuperEu") + ":" + superGetMV("SU_PSWSEGE", .T., "Teste@123")))
+	showLog(VarInfo("aHeader", aHeader, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
 	//Aadd(aHeader, "Authorization: Basic b3BlcmFkb3JAY2xpZW50ZS5jb206cGFzc3dvcmQ=")
 	//Aadd(aHeader, "Authorization: Basic " + Encode64("app01:fTdUlDgdQQ4MRQhLahykiKhON6k97Zfly5SV6fwpa5zCE"))
 	oRestClient:SetPath(cPath)
-	oRestClient:SetPostParams(OJson0:ToJson())
+	oRestClient:SetPostParams(cJson0)
 
 	lRetOk := oRestClient:post(aHeader)
 	if lRetOk
-		cRet += "ACERTADÃO " + oRestClient:getResult()
+		cRet += oRestClient:getResult()
+		recLock("SC9", .F.)
+		SC2->C2_ZOPENV := "S"
+		msUnLock()
 	else
-		cRet += "ERRINHO " + oRestClient:getLastError()
+		cRet += "ERRO" + CRLF + oRestClient:getLastError() + CRLF + oRestClient:getResult()
 	endIf
 
 	showLog(cRet) // juk Continuar daqui. Precisa decidir o que fazer com a informação de retorno. Precisa criar campo na SC2 pra guardar o retorno
@@ -354,6 +389,17 @@ user function opToSegel()
 	fwRestArea(oArea)
 return
 
+/*/{Protheus.doc} C9DrivIn
+Efetua o cálculo da área de alguns quadriláteros.
+@type user function
+@author Julio Carvalho Barberino
+@since 20/07/2026
+@version 0
+@param nBase, numérico, Medida do lado ou da base
+@param [nAltura], numérico, Medida da altura
+@param [nBaseMenor], numérico, Medida da base menor (trapézios)
+@return numérico, Área calculada
+/*/
 user function C9DrivIn()
 	local cPedidoDe
 	local cPedidoAte
@@ -513,6 +559,17 @@ user function C9DrivIn()
 	oObjeto1:jukPlay("Liberações a enviar para DrivIn")
 return
 
+/*/{Protheus.doc} inspGoDrvI
+Mostra motivo do erro durante a comunicação do Protheus com o Drivin
+@type user function
+@author Julio Carvalho Barberino
+@since 06/08/2026
+@version 0
+@param nBase, numérico, Medida do lado ou da base
+@param [nAltura], numérico, Medida da altura
+@param [nBaseMenor], numérico, Medida da base menor (trapézios)
+@return numérico, Área calculada
+/*/
 user function inspGoDrvI(cAliasTemp)
 
 	dbSelectArea("SC9")
@@ -525,6 +582,17 @@ user function inspGoDrvI(cAliasTemp)
 	showLog(SC9->C9_ZDRIVIN)
 return
 
+/*/{Protheus.doc} goDrvIn
+Envia os pedidos selecionados para o Drivin
+@type user function
+@author Julio Carvalho Barberino
+@since 06/08/2026
+@version 0
+@param nBase, numérico, Medida do lado ou da base
+@param [nAltura], numérico, Medida da altura
+@param [nBaseMenor], numérico, Medida da base menor (trapézios)
+@return numérico, Área calculada
+/*/
 user function goDrvIn(cAliasTemp)
 	local cPedido		:= ""
 	local cCliente		:= ""
@@ -704,6 +772,15 @@ user function goDrvIn(cAliasTemp)
 	oMarkBrowse:refresh(.F.)
 return
 
+/*/{Protheus.doc} escolheTk
+Permite usuário escolher o cenário onde será colocado os pedidos
+@type static function
+@author Julio Carvalho Barberino
+@since 28/07/2026
+@version 0
+@param aTokensDt, array com dados mostrados durante a escolha do token
+@return aDados[nI, 4], string com o token no Drivin
+/*/
 static function escolheTk(aTokensDt)
 	local aDados		:= {}
 	local nI
@@ -802,6 +879,14 @@ static function escolheTk(aTokensDt)
 	next nI
 return // juk precisa tratar o que acontece se não tiver dados a retornar.
 
+/*/{Protheus.doc} uniqueSel
+Garante que seja escolhido apenas 1 token de cenario
+@type static function
+@author Julio Carvalho Barberino
+@since 28/07/2026
+@version 0
+@param oBrowTk, TWBrowse com dados mostrados durante a escolha do token
+/*/
 static function uniqueSel(oBrowTk)
 	local nI
 	for nI := 1 to len(oBrowTk:aArray)
@@ -811,6 +896,15 @@ static function uniqueSel(oBrowTk)
 	oBrowTk:refresh()
 return
 
+/*/{Protheus.doc} getTokenDt
+Consulta o cenario token atraves de um GET no DrivIn
+@type static function
+@author Julio Carvalho Barberino
+@since 25/07/2026
+@version 0
+@param dDtentrega, data de entrega
+@return oJResposta['response'], array de jsons
+/*/
 static function getTokenDt(dDtentrega)
 	local cDtEntrega	:= dToS(dDtentrega)
 	local cUrl			:= superGetMV("SU_DIAPIUR", .T.)
@@ -847,6 +941,16 @@ static function getTokenDt(dDtentrega)
 	endIf
 return oJResposta['response']
 
+/*/{Protheus.doc} postPedido
+Faz POST de pedidos no DrivIn
+@type static function
+@author Julio Carvalho Barberino
+@since 25/07/2026
+@version 0
+@param cToken, token do cenario
+@param oDtEntrega, json de pedidos para uma data de entrega
+@return {.t., cRet}, array indicando se houve sucesso e mensagem de resposta
+/*/
 static function postPedido(cToken, oDtEntrega)
 	local cUrl			:= superGetMV("SU_DIAPIUR", .T.)
 	local cPath			:= superGetMV("SU_DIORDER", .T.) + "token=" + cToken
@@ -870,7 +974,14 @@ static function postPedido(cToken, oDtEntrega)
 	endIf
 return {.t., cRet}
 
-user function omsGrDriv()
+/*/{Protheus.doc} rotaDrvDt
+Monta markBrowse com rotas do DrivIn para uma data
+@type user function
+@author Julio Carvalho Barberino
+@since 11/08/2026
+@version 0
+/*/
+user function rotaDrvDt()
 	local cUrl			:= superGetMV("SU_DIAPIUR", .T.)
 	local cPath
 	local aResp			:= {}
@@ -998,6 +1109,14 @@ user function omsGrDriv()
 	oMarkBr:jukPlay("Rotas para uma data")
 return
 
+/*/{Protheus.doc} DrvToOMS
+Grava cargas do DrivIn no OMS do protheus
+@type user function
+@author Julio Carvalho Barberino
+@since 11/08/2026
+@version 0
+@param cAliasTemp, alias de uma tabela com rotas
+/*/
 user function DrvToOMS(cAliasTemp)
 	local nIResponse, nITrips, nIResults, nIOrders, nIItems
 	local oArea			:= fwGetArea()
@@ -1147,8 +1266,15 @@ user function DrvToOMS(cAliasTemp)
 	fwRestArea(oArea)
 return
 
+/*/{Protheus.doc} OM200CAR
+Ponto de entrada para alterar a query que indica quais registros da C9 serão pegos pelo OMS https://tdn.totvs.com/pages/releaseview.action?pageId=600804956
+@type user function
+@author Julio Carvalho Barberino
+@since 25/08/2026
+@version 0
+@return cQuery, query apos alteração
+/*/
 user function OM200CAR()
-	// https://tdn.totvs.com/pages/releaseview.action?pageId=600804956
 	local cQuery := PARAMIXB[1]
 
 	showLog(cQuery)
@@ -1158,9 +1284,15 @@ user function OM200CAR()
 	showLog(cQuery)
 return cQuery
 
+/*/{Protheus.doc} OM200QRY
+Ponto de entrada para alterar a query que indica quais registros da C9 serão mostrados pelo OMS https://tdn.totvs.com/display/public/PROT/DT+PE+OM200QRY+-+Filtro+dos+pedidos+apresentados+na+tela+de+montagem+de+carga https://tdn.totvs.com/pages/releaseview.action?pageId=600804368
+@type user function
+@author Julio Carvalho Barberino
+@since 25/08/2026
+@version 0
+@return cQuery, query apos alteração
+/*/
 user function OM200QRY()
-	// https://tdn.totvs.com/display/public/PROT/DT+PE+OM200QRY+-+Filtro+dos+pedidos+apresentados+na+tela+de+montagem+de+carga
-	// https://tdn.totvs.com/pages/releaseview.action?pageId=600804368
 	local cQuery		:= PARAMIXB[1] //Query para a manutenção
 	local aArrayTipo	:= PARAMIXB[2] //Tipos de carga selecionados
 	local aArrayMod		:= PARAMIXB[3] //Modelos de carga
