@@ -252,17 +252,25 @@ user function CBRETEAN()
 	local cId				:= padR(paramIXB[1], tamSX3("ZB0_CODETI")[1])
 	local aRet				:= {}
 
+	if type("cCodZB0") == "U"
+		public cCodZB0 // Cria variavel publica para ser lida no ponto de entrada ACDGCB9
+		cCodZB0 := cId
+	else
+		cCodZB0 := cId
+	endIf
+
 	dbSelectArea('ZB0')
 	ZB0->(dbSetOrder(1))
 	if ZB0->(msSeek(fwXFilial('ZB0') + cId))
 		aRet := {;
-			ZB0->ZB0_CODPRO, ;
-			ZB0->ZB0_QTDE, ;
-			ZB0->ZB0_LOTE, ;
-			NIL, ;
-			ZB0->ZB0_NUMSER, ;
-			NIL;
+			ZB0->ZB0_CODPRO /*cod prod*/, ;
+			ZB0->ZB0_QTDE /*quantidade por embalagem*/, ;
+			ZB0->ZB0_LOTE /*lote*/, ;
+			nil /*validade*/, ;
+			allTrim(ZB0->ZB0_NUMSER) /*numero de serie*/, ;
+			nil /*endereco de destino*/;
 			}
+		// https://centraldeatendimento.totvs.com/hc/es/articles/10001808355991-Cross-Segmentos-TOTVS-Backoffice-L%C3%ADnea-Protheus-MI-Recolecci%C3%B3n-de-datos-SIGAACD-Uso-de-par%C3%A1metro-MV-SUBNSER-en-ACDV166
 	endIf
 
 	fwRestArea(oArea)
@@ -1304,3 +1312,45 @@ user function OM200QRY()
 	endIf
 	showLog(cQuery)
 return cQuery
+
+/*/{Protheus.doc} ACD100FI
+Ponto de entrada utilizado para filtrar os itens exibidos na listagem de Pedidos de Venda / Notas Fiscais / Ordens de Produção ao gerar Ordens de Separação. https://tdn.totvs.com/display/public/mp/ACD100FI+-+Filtra+Itens+em+Pedidos+de+Venda+--+30561
+@type user function
+@author Julio Carvalho Barberino
+@since 29/08/2026
+@version 0
+@return {nOrig,cFil}, tipo de origem, string ADVPL que complementa o filtro da rotina ACDA100 
+/*/
+user function ACD100FI()
+	local nOrig		:= PARAMIXB[1] // 1 = Pedido de Venda / 2 = Nota Fiscal / 3 = Ordem de Produção
+	local cFil		:= ".T." // Validações do usuário
+
+	if PARAMIXB[1] == 1
+		cFil := "SC9->C9_CARGA >= MV_PAR11 .and. SC9->C9_CARGA <= MV_PAR12" // MV_PAR11 = Carga de?			 MV_PAR12 = Carga Ate?		incluidas no grupo de pergunta AIA102
+	endIf
+return {nOrig,cFil}
+
+/*/{Protheus.doc} ACDGCB9
+Ponto de entrada Responsável por gravar os dados da separação. EM QUE PONTO:No final da função, permite validar a quantidade separada. https://tdn.totvs.com/pages/releaseview.action?pageId=6091045
+@type user function
+@author Julio Carvalho Barberino
+@since 01/09/2026
+@version 0
+/*/
+user function ACDGCB9()
+	if valType(cCodZB0) == "C" // juk verificar se deve alterar de valType para type e testar
+		CB9->CB9_ZB0COD := cCodZB0 // Variavel publica criada no ponto de entrada CBRETEAN
+	endIf
+return
+
+/*/{Protheus.doc} ACD170VE
+Ponto de entrada compilado apenas para entrar numa validação do fonte acdv166.prg If lContinua .And. lACD170VE https://tdn.totvs.com/display/public/PROT/PE+ACD170VE+Valida+Etiqueta+do+Produto
+@type user function
+@author Julio Carvalho Barberino
+@since 02/09/2026
+@version 0
+@return aEtiq, acaba sendo o mesmo array criado no ponto de entrada CBRETEAN
+/*/
+User Function ACD170VE()
+	local aEtiq := PARAMIXB
+Return aEtiq

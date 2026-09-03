@@ -3,7 +3,7 @@
 #INCLUDE 'parmtype.ch'
 #INCLUDE 'Totvs.ch'
 
-#DEFINE senhaChumbadaNofonte '2469' // Coloque aqui a senha que vc deseja antes de compilar
+#DEFINE senhaChumbadaNofonte '1234' // Coloque aqui a senha que vc deseja antes de compilar
 #DEFINE funcaoChubadaNoFonte 'zMiniForm' // Coloque aqui a função que vc deseja executar automáticamente antes de compilar
 
 Static cLogNome := "\system\historico_zMiniForm.log"
