@@ -36,6 +36,7 @@ user function aptProd(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cS
 		{"D3_LOCAL",		cArmazem,							NIL},;
 		{"D3_LOTECTL",		cLote,								NIL},;
 		{"D3_QUANT",		nQuant,								NIL},;
+		{"D3_DOC",			cOp,								NIL},;
 		{"D3_ZB0COD",		cTags,								NIL};
 		}
 
@@ -238,7 +239,7 @@ user function MTA265I()
 			{"ZB0_LOCAL",		SDB->DB_LOCAL}, ;
 			{"ZB0_LOTE",		SDB->DB_LOTECTL}, ;
 			{"ZB0_SLOTE",		SDB->DB_NUMLOTE}, ;
-			{"ZB0_OP",			left(SDB->DB_OP, 11) /*left(SDB->DB_DOC, 11)*/}, ;
+			{"ZB0_OP",			/*left(SDB->DB_OP, 11)*/ left(SDB->DB_DOC, 11)}, ;
 			{"ZB0_NUMSEQ",		SDB->DB_NUMSEQ}, ;
 			{"ZB0_NUMSER",		SDB->DB_NUMSERI} ;
 			}
