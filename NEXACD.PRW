@@ -2,6 +2,7 @@
 #INCLUDE "RWMAKE.CH"
 
 #DEFINE NOME_FONTE		"NEXACD.PRW"
+#DEFINE MINITORAR
 
 #DEFINE ORACLE
 
@@ -11,10 +12,16 @@ Funcao faz apontamento de producao. Eh chamado pelo webservice nexSolucoes
 @author Julio Carvalho Barberino
 @since 09/07/2026
 @version 0
-@param nBase, numérico, Medida do lado ou da base
-@param [nAltura], numérico, Medida da altura
-@param [nBaseMenor], numérico, Medida da base menor (trapézios)
-@return numérico, Área calculada
+@param cFilia, filial
+@param cOp, 
+@param cCodProd, 
+@param cDescr, 
+@param cArmazem, 
+@param cLote, 
+@param nQuant, 
+@param cSerie, 
+@param cTags,
+@return aRet, array no formato {.T., "gravou Ok"}, indica se gravou apontamento e uma mensagem
 /*/
 user function aptProd(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cSerie, cTags)
 	local aVetor
@@ -23,7 +30,7 @@ user function aptProd(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cS
 
 	aVetor := {;
 		{"D3_OP",			cOp,								NIL},;
-		{"D3_TM",			superGetMV("SU_TMAPT", .F.),		NIL},;
+		{"D3_TM",			superGetMV("SU_TMAPT", .F., ""),	NIL},;
 		{"D3_COD",			cCodProd,							NIL},;
 		{"D3_DESCRI",		cDescr,								NIL},;
 		{"D3_LOCAL",		cArmazem,							NIL},;
@@ -50,10 +57,16 @@ Funcao faz enderecamento lotes recem produzidos. Eh chamado pelo webservice nexS
 @author Julio Carvalho Barberino
 @since 10/07/2026
 @version 0
-@param nBase, numérico, Medida do lado ou da base
-@param [nAltura], numérico, Medida da altura
-@param [nBaseMenor], numérico, Medida da base menor (trapézios)
-@return numérico, Área calculada
+@param cFilia, filial
+@param cOp, 
+@param cCodProd, 
+@param cDescr, 
+@param cArmazem, 
+@param cLote, 
+@param nQuant, 
+@param cSerie, 
+@param cTags,
+@return aRet, array no formato {.T., "gravou Ok"}, indica se gravou apontamento e uma mensagem
 /*/
 user function endereca(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cSerie, cTags)
 	local oArea				:= fwGetArea()
@@ -136,10 +149,8 @@ Funcao registra dados na tabela ZB0. Eh chamado no ponto de entrada MTA265I
 @author Julio Carvalho Barberino
 @since 20/07/2026
 @version 0
-@param nBase, numérico, Medida do lado ou da base
-@param [nAltura], numérico, Medida da altura
-@param [nBaseMenor], numérico, Medida da base menor (trapézios)
-@return numérico, Área calculada
+@param aDadosZB0, array com dados da tabela ZB0
+@return cNumDisponivel, dado que foi gravado no campo ZB0_CODETI
 /*/
 user function criarZB0(aDadosZB0)
 /*
@@ -176,6 +187,7 @@ Exemplo de vetor que a função espera receber:
 	dbSelectArea('ZB0')
 	ZB0->(dbSetOrder(1))
 
+	//juk precisa tratar o que acontece caso a ZB0 não seja gravada com um ZB0_CODETI. Existia um controle de numeração atravez de parametro e funcao CBProxCod('MV_CODCB0') na Ledervin, mas foi abandonado na suenoLar
 	/*
 	While .T.
 		cNumDisponivel := Padr(CBProxCod('MV_CODZB0'),10)
@@ -185,6 +197,7 @@ Exemplo de vetor que a função espera receber:
 		endIf
 	EndDo
 	*/
+	//juk precisa tratar o que acontece caso a ZB0 não seja gravada com um ZB0_CODETI. Existia um controle de numeração atravez de parametro e funcao CBProxCod('MV_CODCB0') na Ledervin, mas foi abandonado na suenoLar
 
 	recLock('ZB0',.T.)
 	for nI := 1 to len(aDadosZB0)
@@ -194,6 +207,9 @@ Exemplo de vetor que a função espera receber:
 		lTamanhoOk := iif(cTipoRecebido == "C", len(aDadosZB0[nI][2]) <= tamSx3(aDadosZB0[nI][1])[1], .T.)
 		If lTipoIgual .and. lTamanhoOk
 			ZB0->&(aDadosZB0[nI][1]) := aDadosZB0[nI][2]
+			if aDadosZB0[nI][1] == "ZB0_CODETI"
+				cNumDisponivel := aDadosZB0[nI][2] //juk precisa tratar o que acontece caso a ZB0 não seja gravada com um ZB0_CODETI. Existia um controle de numeração atravez de parametro e funcao CBProxCod('MV_CODCB0') na Ledervin, mas foi abandonado na suenoLar
+			endIf
 		endIf
 	next
 	msUnLock()
@@ -206,10 +222,6 @@ Ponto de entrada chamado durante o enderecamento https://tdn.totvs.com/pages/rel
 @author Julio Carvalho Barberino
 @since 09/07/2026
 @version 0
-@param nBase, numérico, Medida do lado ou da base
-@param [nAltura], numérico, Medida da altura
-@param [nBaseMenor], numérico, Medida da base menor (trapézios)
-@return numérico, Área calculada
 /*/
 user function MTA265I()
 	local aDadosZB0
@@ -226,7 +238,7 @@ user function MTA265I()
 			{"ZB0_LOCAL",		SDB->DB_LOCAL}, ;
 			{"ZB0_LOTE",		SDB->DB_LOTECTL}, ;
 			{"ZB0_SLOTE",		SDB->DB_NUMLOTE}, ;
-			{"ZB0_OP",			left(SDB->DB_DOC, 11)}, ;
+			{"ZB0_OP",			left(SDB->DB_OP, 11) /*left(SDB->DB_DOC, 11)*/}, ;
 			{"ZB0_NUMSEQ",		SDB->DB_NUMSEQ}, ;
 			{"ZB0_NUMSER",		SDB->DB_NUMSERI} ;
 			}
@@ -242,10 +254,7 @@ Ponto de entrada chamado quando faz leitura do codigo de barras no coletor https
 @author Julio Carvalho Barberino
 @since 14/07/2026
 @version 0
-@param nBase, numérico, Medida do lado ou da base
-@param [nAltura], numérico, Medida da altura
-@param [nBaseMenor], numérico, Medida da base menor (trapézios)
-@return numérico, Área calculada
+@return aRet, Espera devolver aRet = {"Código do Produto","Quantidade(Embalagem normalmente analisado na nQE := SB1->B1_QE no processo padrão)","Lote","Data de Validade","Número de Série","Endereço Destino"}
 /*/
 user function CBRETEAN()
 	local oArea				:= fwGetArea()
@@ -263,18 +272,18 @@ user function CBRETEAN()
 	ZB0->(dbSetOrder(1))
 	if ZB0->(msSeek(fwXFilial('ZB0') + cId))
 		aRet := {;
-			ZB0->ZB0_CODPRO /*cod prod*/, ;
+			padR(ZB0->ZB0_CODPRO, tamSX3("BF_PRODUTO")[1]) /*cod prod*/, ;
 			ZB0->ZB0_QTDE /*quantidade por embalagem*/, ;
-			ZB0->ZB0_LOTE /*lote*/, ;
+			padR(ZB0->ZB0_LOTE, tamSX3("BF_LOTECTL")[1]) /*lote*/, ;
 			nil /*validade*/, ;
-			allTrim(ZB0->ZB0_NUMSER) /*numero de serie*/, ;
-			nil /*endereco de destino*/;
+			padR(ZB0->ZB0_NUMSER, tamSX3("BF_NUMSERI")[1]) /*numero de serie*/, ;
+			padR(CB8->CB8_LCALIZ, tamSX3("BF_LOCALIZ")[1]) /*endereco de destino*/;
 			}
 		// https://centraldeatendimento.totvs.com/hc/es/articles/10001808355991-Cross-Segmentos-TOTVS-Backoffice-L%C3%ADnea-Protheus-MI-Recolecci%C3%B3n-de-datos-SIGAACD-Uso-de-par%C3%A1metro-MV-SUBNSER-en-ACDV166
 	endIf
 
 	fwRestArea(oArea)
-return aRet // Espera devolver aRet = {"Código do Produto","Quantidade(Embalagem normalmente analisado na nQE := SB1->B1_QE no processo padrão)","Lote","Data de Validade","Número de Série","Endereço Destino"}
+return aRet
 
 /*/{Protheus.doc} MTA650MNU
 Ponto de entrada chamado no carregamento de opcoes da rotina Ordem de Producao https://tdn.totvs.com/display/public/PROT/MTA650MNU
@@ -282,10 +291,6 @@ Ponto de entrada chamado no carregamento de opcoes da rotina Ordem de Producao h
 @author Julio Carvalho Barberino
 @since 20/07/2026
 @version 0
-@param nBase, numérico, Medida do lado ou da base
-@param [nAltura], numérico, Medida da altura
-@param [nBaseMenor], numérico, Medida da base menor (trapézios)
-@return numérico, Área calculada
 /*/
 user function MTA650MNU()
 /*
@@ -311,10 +316,6 @@ Rotina que envia ordem de produção para o end point da SEGEL
 @author Julio Carvalho Barberino
 @since 20/07/2026
 @version 0
-@param nBase, numérico, Medida do lado ou da base
-@param [nAltura], numérico, Medida da altura
-@param [nBaseMenor], numérico, Medida da base menor (trapézios)
-@return numérico, Área calculada
 /*/
 user function opToSegel()
 	local oArea			:= fwGetArea()
@@ -373,10 +374,14 @@ user function opToSegel()
 	OJson0["familia"] := allTrim(SB1->B1_MARCA) + allTrim(SB1->B1_FAMILY)
 
 	cJson0 := OJson0:ToJson()
-	showLog(cJson0)
+	#IFDEF MINITORAR
+		showLog(cJson0)
+	#ENDIF
 	Aadd(aHeader, "Content-Type: application/json")
 	Aadd(aHeader, "Authorization: Basic " + encode64(superGetMV("SU_USRSEGE", .T., "SuperEu") + ":" + superGetMV("SU_PSWSEGE", .T., "Teste@123")))
-	showLog(VarInfo("aHeader", aHeader, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
+	#IFDEF MINITORAR
+		showLog(VarInfo("aHeader", aHeader, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
+	#ENDIF
 	//Aadd(aHeader, "Authorization: Basic b3BlcmFkb3JAY2xpZW50ZS5jb206cGFzc3dvcmQ=")
 	//Aadd(aHeader, "Authorization: Basic " + Encode64("app01:fTdUlDgdQQ4MRQhLahykiKhON6k97Zfly5SV6fwpa5zCE"))
 	oRestClient:SetPath(cPath)
@@ -391,22 +396,19 @@ user function opToSegel()
 	else
 		cRet += "ERRO" + CRLF + oRestClient:getLastError() + CRLF + oRestClient:getResult()
 	endIf
-
-	showLog(cRet) // juk Continuar daqui. Precisa decidir o que fazer com a informação de retorno. Precisa criar campo na SC2 pra guardar o retorno
+	#IFDEF MINITORAR
+		showLog(cRet) // juk Continuar daqui. Precisa decidir o que fazer com a informação de retorno. Precisa criar campo na SC2 pra guardar o retorno
+	#ENDIF
 
 	fwRestArea(oArea)
 return
 
 /*/{Protheus.doc} C9DrivIn
-Efetua o cálculo da área de alguns quadriláteros.
+Monta mark Browse para envio de registros ao DrivIn
 @type user function
 @author Julio Carvalho Barberino
 @since 20/07/2026
 @version 0
-@param nBase, numérico, Medida do lado ou da base
-@param [nAltura], numérico, Medida da altura
-@param [nBaseMenor], numérico, Medida da base menor (trapézios)
-@return numérico, Área calculada
 /*/
 user function C9DrivIn()
 	local cPedidoDe
@@ -450,8 +452,6 @@ user function C9DrivIn()
 	local cCampoIdx			:= "REC"
 	local cCampoSel			:= "SEL_OK"
 	local oObjeto1
-	local nIx
-
 
 	if !Pergunte("C9DRIVEIN ", .T.)
 		msgAlert("As perguntas não foram carregadas corretamente", NOME_FONTE)
@@ -551,9 +551,10 @@ user function C9DrivIn()
 	cQy += "	C9_PEDIDO, " + CRLF
 	cQy += "	C9_ITEM, " + CRLF
 	cQy += "	C9_SEQUEN"
-	showLog(cQy)
 	cQy := ChangeQuery(cQy)
-	showLog(cQy)
+	#IFDEF MINITORAR
+		showLog(cQy)
+	#ENDIF
 
 	dbUseArea(.T., "TOPCONN", TCGenQry(, , cQy), cAliasC9, .F., .T.)
 	dbSelectArea(cAliasC9)
@@ -573,10 +574,7 @@ Mostra motivo do erro durante a comunicação do Protheus com o Drivin
 @author Julio Carvalho Barberino
 @since 06/08/2026
 @version 0
-@param nBase, numérico, Medida do lado ou da base
-@param [nAltura], numérico, Medida da altura
-@param [nBaseMenor], numérico, Medida da base menor (trapézios)
-@return numérico, Área calculada
+@param cAliasTemp, alias do markBrowse
 /*/
 user function inspGoDrvI(cAliasTemp)
 
@@ -587,7 +585,7 @@ user function inspGoDrvI(cAliasTemp)
 		return
 	endIf
 
-	showLog(SC9->C9_ZDRIVIN)
+	showLog(SC9->C9_ZDRIVIN) // Mostra motivo do erro durante a comunicação do Protheus com o Drivin para usuário
 return
 
 /*/{Protheus.doc} goDrvIn
@@ -596,10 +594,7 @@ Envia os pedidos selecionados para o Drivin
 @author Julio Carvalho Barberino
 @since 06/08/2026
 @version 0
-@param nBase, numérico, Medida do lado ou da base
-@param [nAltura], numérico, Medida da altura
-@param [nBaseMenor], numérico, Medida da base menor (trapézios)
-@return numérico, Área calculada
+@param cAliasTemp, alias do markBrowse
 /*/
 user function goDrvIn(cAliasTemp)
 	local cPedido		:= ""
@@ -687,7 +682,7 @@ user function goDrvIn(cAliasTemp)
 		oItem['description'] := (cAliasTemp)->B1_DESC
 		oItem['units'] := (cAliasTemp)->C9_QTDLIB
 		oItem['units_2'] := Posicione("SB1", 1, fwXFilial("SB1") + (cAliasTemp)->C9_PRODUTO, 'allTrim(str(SB1->B1_M3, tamSX3("B1_M3")[1], tamSX3("B1_M3")[2]))')
-		aAdd(aItens, oItem)
+		aAdd(aItens, oItem) // juk não esquecer o tratamento para transformar strings em utf8
 
 		cPedido		:= (cAliasTemp)->C9_PEDIDO
 		cCliente	:= (cAliasTemp)->C9_CLIENTE
@@ -718,7 +713,9 @@ user function goDrvIn(cAliasTemp)
 	endIf
 
 	for nI := 2 to len(aDtEntrJson)
-		showLog("Enviar POST de:" + CRLF + VarInfo("Data de entrega " + cValToChar(nI) + " de " + cValToChar(len(aDtEntrJson)) + CRLF, aDtEntrJson[nI, 2]:ToJson(), /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
+		#IFDEF MINITORAR
+			showLog("Enviar POST de:" + CRLF + VarInfo("Data de entrega " + cValToChar(nI) + " de " + cValToChar(len(aDtEntrJson)) + CRLF, aDtEntrJson[nI, 2]:ToJson(), /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
+		#ENDIF
 		aTokensDt := getTokenDt(aDtEntrJson[nI, 1])
 		if valType(aTokensDt) == "C"
 			exit
@@ -915,9 +912,9 @@ Consulta o cenario token atraves de um GET no DrivIn
 /*/
 static function getTokenDt(dDtentrega)
 	local cDtEntrega	:= dToS(dDtentrega)
-	local cUrl			:= superGetMV("SU_DIAPIUR", .T.)
-	local cPath			:= superGetMV("SU_DICENAR", .T.) + "date=" + subStr(cDtEntrega, 1, 4) + "-" + subStr(cDtEntrega, 5, 2) + "-" + subStr(cDtEntrega, 7, 2)
-	local cApiKey		:= superGetMV("SU_DIAPIKE", .T.)
+	local cUrl			:= superGetMV("SU_DIAPIUR", .T., "")
+	local cPath			:= superGetMV("SU_DICENAR", .T., "") + "date=" + subStr(cDtEntrega, 1, 4) + "-" + subStr(cDtEntrega, 5, 2) + "-" + subStr(cDtEntrega, 7, 2)
+	local cApiKey		:= superGetMV("SU_DIAPIKE", .T., "")
 	local oRestClient	:= FWRest():New(cUrl) // https://tdn.totvs.com/display/public/framework/FWRest
 	local aHeader		:= {}
 	local lRetOk
@@ -960,9 +957,9 @@ Faz POST de pedidos no DrivIn
 @return {.t., cRet}, array indicando se houve sucesso e mensagem de resposta
 /*/
 static function postPedido(cToken, oDtEntrega)
-	local cUrl			:= superGetMV("SU_DIAPIUR", .T.)
-	local cPath			:= superGetMV("SU_DIORDER", .T.) + "token=" + cToken
-	local cApiKey		:= superGetMV("SU_DIAPIKE", .T.)
+	local cUrl			:= superGetMV("SU_DIAPIUR", .T., "")
+	local cPath			:= superGetMV("SU_DIORDER", .T., "") + "token=" + cToken
+	local cApiKey		:= superGetMV("SU_DIAPIKE", .T., "")
 	local oRestClient	:= FWRest():New(cUrl) // https://tdn.totvs.com/display/public/framework/FWRest
 	local aHeader		:= {}
 	local cRet
@@ -990,12 +987,12 @@ Monta markBrowse com rotas do DrivIn para uma data
 @version 0
 /*/
 user function rotaDrvDt()
-	local cUrl			:= superGetMV("SU_DIAPIUR", .T.)
+	local cUrl			:= superGetMV("SU_DIAPIUR", .T., "")
 	local cPath
 	local aResp			:= {}
 	local aTokensDt
 	local oRestClient	:= FWRest():New(cUrl) // https://tdn.totvs.com/display/public/framework/FWRest
-	local cApiKey		:= superGetMV("SU_DIAPIKE", .T.)
+	local cApiKey		:= superGetMV("SU_DIAPIKE", .T., "")
 	local aHeader		:= {"X-API-Key: " + cApiKey, "Content-Type: application/json"}
 	local oJsonReceb	:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
 	local cJsonRaw
@@ -1040,10 +1037,12 @@ user function rotaDrvDt()
 	dDtentrega := aResp[1]
 	aTokensDt := getTokenDt(dDtentrega)
 	cTokenDt := escolheTk(aTokensDt)
-	cPath := superGetMV("SU_DIRESUL", .T.) + "token=" + cTokenDt + "&unassigned=1"
+	cPath := superGetMV("SU_DIRESUL", .T., "") + "token=" + cTokenDt + "&unassigned=1"
 	oRestClient:SetPath(cPath)
 	if oRestClient:get(aHeader)
-		showLog(oRestClient:getResult())
+		#IFDEF MINITORAR
+			showLog(oRestClient:getResult())
+		#ENDIF
 		oJsonReceb:fromJson(oRestClient:getResult())
 	else
 		msgAlert("Houve erro no retorno do GET de cargas " + cPath + CRLF + oRestClient:getLastError(), NOME_FONTE)
@@ -1063,23 +1062,24 @@ user function rotaDrvDt()
 	oRotasTab := FWTemporaryTable():new(cAliasRote, aCamposRed)
 	oRotasTab:AddIndex("01", {cCampoIdx})
 	oRotasTab:Create()
-	msgAlert("Antes " + cAliasRote, NOME_FONTE)
-	msgAlert("Depois " + cAliasRote, NOME_FONTE)
 	cAliasRote := oRotasTab:getAlias()
 
 	cQy := "SELECT " + CRLF
-	cQy := "	DAK_COD, " + CRLF
-	cQy := "	DAK_ZCENAR, " + CRLF
-	cQy := "	DAK_ZDRVRT " + CRLF
-	cQy := "FROM " + CRLF
-	cQy := "	DAK990 " + CRLF
-	cQy := "WHERE " + CRLF
-	cQy := "	DAK_FILIAL = '" + fwXFilial("DAK") + "' "
-	cQy := "	AND DAK_ZCENAR = '" + cTokenDt + "' "
-	cQy := "	AND D_E_L_E_T_ = ''; "
-	showLog(cQy)
+	cQy += "	DAK_COD, " + CRLF
+	cQy += "	DAK_ZCENAR, " + CRLF
+	cQy += "	DAK_ZDRVRT " + CRLF
+	cQy += "FROM " + CRLF
+	cQy += "	DAK990 " + CRLF
+	cQy += "WHERE " + CRLF
+	cQy += "	DAK_FILIAL = '" + fwXFilial("DAK") + "' "
+	cQy += "	AND DAK_ZCENAR = '" + cTokenDt + "' "
+	cQy += "	AND D_E_L_E_T_ = ''; "
+	cQy := ChangeQuery(cQy)
+	#IFDEF MINITORAR
+		showLog(cQy)
+	#ENDIF
 	cAliasDAK := getNextAlias()
-	dbUseArea(.T., "TOPCONN", TCGenQry(, , ChangeQuery(cQy)), cAliasDAK, .F., .T.)
+	dbUseArea(.T., "TOPCONN", TCGenQry(, , cQy), cAliasDAK, .F., .T.)
 	dbSelectArea(cAliasDAK)
 
 	if 0 < len(oJsonReceb['response'])
@@ -1285,11 +1285,15 @@ Ponto de entrada para alterar a query que indica quais registros da C9 serão peg
 user function OM200CAR()
 	local cQuery := PARAMIXB[1]
 
-	showLog(cQuery)
+	#IFDEF MINITORAR
+		showLog(cQuery)
+	#ENDIF
 	if FWIsInCallStack("U_DrvToOMS") .or. FWIsInCallStack("U_jukTest") // juk retirar o trecho .or. FWIsInCallStack("U_jukTest")
 		cQuery := strTran(cQuery, " ORDER BY", " AND SC9.C9_DATENT = '" + dToS(dDateC9) + "' ORDER BY")
 	endIf
-	showLog(cQuery)
+	#IFDEF MINITORAR
+		showLog(cQuery)
+	#ENDIF
 return cQuery
 
 /*/{Protheus.doc} OM200QRY
@@ -1306,11 +1310,15 @@ user function OM200QRY()
 	local aArrayMod		:= PARAMIXB[3] //Modelos de carga
 	local nQuery		:= PARAMIXB[4] //Número da query no UNION (1,2)
 
-	showLog(cQuery)
+	#IFDEF MINITORAR
+		showLog(cQuery)
+	#ENDIF
 	if nQuery == 2 .and. FWIsInCallStack("U_DrvToOMS") .or. FWIsInCallStack("U_jukTest") // juk retirar o trecho .or. FWIsInCallStack("U_jukTest")
 		cQuery += " AND SC9.C9_DATENT = '" + dToS(dDateC9) + "'"
 	endIf
-	showLog(cQuery)
+	#IFDEF MINITORAR
+		showLog(cQuery)
+	#ENDIF
 return cQuery
 
 /*/{Protheus.doc} ACD100FI
@@ -1325,8 +1333,11 @@ user function ACD100FI()
 	local nOrig		:= PARAMIXB[1] // 1 = Pedido de Venda / 2 = Nota Fiscal / 3 = Ordem de Produção
 	local cFil		:= ".T." // Validações do usuário
 
+	#IFDEF MONITORAR
+		showLog("Ponto de entrada utilizado para filtrar os itens exibidos na listagem de Pedidos de Venda / Notas Fiscais / Ordens de Produção ao gerar Ordens de Separação. https://tdn.totvs.com/display/public/mp/ACD100FI+-+Filtra+Itens+em+Pedidos+de+Venda+--+30561" + CRLF + "MV_PAR11 = Carga de?		 MV_PAR12 = Carga Ate?		incluidas no grupo de pergunta AIA102")
+	#ENDIF
 	if PARAMIXB[1] == 1
-		cFil := "SC9->C9_CARGA >= MV_PAR11 .and. SC9->C9_CARGA <= MV_PAR12" // MV_PAR11 = Carga de?			 MV_PAR12 = Carga Ate?		incluidas no grupo de pergunta AIA102
+		cFil := "SC9->C9_CARGA >= MV_PAR11 .and. SC9->C9_CARGA <= MV_PAR12" // MV_PAR11 = Carga de?		 MV_PAR12 = Carga Ate?		incluidas no grupo de pergunta AIA102
 	endIf
 return {nOrig,cFil}
 
@@ -1338,6 +1349,9 @@ Ponto de entrada Responsável por gravar os dados da separação. EM QUE PONTO:No f
 @version 0
 /*/
 user function ACDGCB9()
+	#IFDEF MONITORAR
+		showLog("Ponto de entrada ACDGCB9 Responsável por gravar os dados da separação. EM QUE PONTO:No final da função, permite validar a quantidade separada. https://tdn.totvs.com/pages/releaseview.action?pageId=6091045")
+	#ENDIF
 	if valType(cCodZB0) == "C" // juk verificar se deve alterar de valType para type e testar
 		CB9->CB9_ZB0COD := cCodZB0 // Variavel publica criada no ponto de entrada CBRETEAN
 	endIf
@@ -1353,4 +1367,34 @@ Ponto de entrada compilado apenas para entrar numa validação do fonte acdv166.pr
 /*/
 User Function ACD170VE()
 	local aEtiq := PARAMIXB
+	#IFDEF MONITORAR
+		showLog("Ponto de entrada compilado apenas para entrar numa validação do fonte acdv166.prg If lContinua .And. lACD170VE https://tdn.totvs.com/display/public/PROT/PE+ACD170VE+Valida+Etiqueta+do+Produto")
+	#ENDIF
 Return aEtiq
+
+/*/{Protheus.doc} M460FIM
+https://centraldeatendimento.totvs.com/hc/pt-br/articles/5717386591767-Cross-Segmentos-Backoffice-Protheus-SIGAFAT-Ponto-de-Entrada-M460FIM		https://terminaldeinformacao.com/knowledgebase/ponto-de-entrada-m460fim/
+@type user function
+@author Julio Carvalho Barberino
+@since 03/09/2026
+@version 0
+/*/ 
+user function M460FIM()
+/*
+	 Ponto de entrada M460FIM - Gravação da NF saida
+	 Este P.E. é chamado após a gravação da NF de Saída e fora da transação.
+	#Par01    - PARAMIXB[1] - Número da NF
+	#Par02    - PARAMIXB[2] - Série da NF
+	#Par03    - PARAMIXB[3] - Cliente/fornecedor da NF
+	#Par03    - PARAMIXB[4] - Loja da NF
+	*Return   - Sem nenhuma retorno
+*/
+	local cNumNFS   := PARAMIXB[1] // Número da NF
+	local cSerieNFS := PARAMIXB[2] // Série da NF
+	local cClieFor  := PARAMIXB[3] // Cliente/fornecedor da NF
+	local cLoja     := PARAMIXB[4] // Loja da NF
+
+	#IFDEF MINITORAR
+		showLog("Ponto de entrada M460FIM" + CRLF + VarInfo("PARAMIXB", PARAMIXB, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
+	#ENDIF
+return
