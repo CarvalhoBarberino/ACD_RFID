@@ -995,29 +995,28 @@ user function rotaDrvDt()
 	local oRestClient	:= FWRest():New(cUrl) // https://tdn.totvs.com/display/public/framework/FWRest
 	local cApiKey		:= superGetMV("SU_DIAPIKE", .T., "")
 	local aHeader		:= {"X-API-Key: " + cApiKey, "Content-Type: application/json"}
-	local oJsonReceb	:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
 	local cJsonRaw
 
 	local aEstrutura	:= {;
-		{"ROTA",		"Rota",			"C",						6,							0,							""}, ;
-		{"FLEET",		"Fleet",		"N",						6,							0,							""}, ;
-		{"DEPLOY",		"Deploy",		"D",						8,							0,							""}, ;
-		{"VEHICLE",		"Vehicle",		"C",						16,							0,							""}, ;
-		{"DAK_COD",		"Comunic",		tamSX3("DAK_COD")[3],		tamSX3("DAK_COD")[1],		tamSX3("DAK_COD")[2],		""}, ;
-		{"COMUNIC",		"Comunic",		"N",						1,							0,							""}, ;
-		{"REC",			"Rec",			"N",						6,							0,							""}, ;
-		{"SEL_OK",		"Sel",			"C",						2,							0,							""}}
-	//	 Campo			Título			Típo						Tamanho						Decimais					Mascara
+		{"ROTA",		"Rota",				"C",						6,							0,							""}, ;
+		{"FLEET",		"Fleet",			"N",						6,							0,							""}, ;
+		{"DEPLOY",		"Deploy",			"D",						8,							0,							""}, ;
+		{"VEHICLE",		"Vehicle",			"C",						16,							0,							""}, ;
+		{"DAK_COD",		"CargaProtheus",	tamSX3("DAK_COD")[3],		tamSX3("DAK_COD")[1],		tamSX3("DAK_COD")[2],		""}, ;
+		{"COMUNIC",		"Comunic",			"N",						1,							0,							""}, ;
+		{"REC",			"Rec",				"N",						6,							0,							""}, ;
+		{"SEL_OK",		"Sel",				"C",						2,							0,							""}}
+	//	 Campo			Título				Típo						Tamanho						Decimais					Mascara
 	local aCamposRed	:= {;
-		{"ROTA",						"C",						6,							0}, ;
-		{"FLEET",						"N",						6,							0}, ;
-		{"DEPLOY",						"D",						8,							0}, ;
-		{"VEHICLE",						"C",						16,							0}, ;
-		{"DAK_COD",						tamSX3("DAK_COD")[3],		tamSX3("DAK_COD")[1],		tamSX3("DAK_COD")[2]}, ;
-		{"COMUNIC",						"N",						1,							0}, ;
-		{"REC",							"N",						6,							0}, ;
-		{"SEL_OK",						"C",						2,							0}}
-	//	 Campo							Típo						Tamanho						Decimais
+		{"ROTA",							"C",						6,							0}, ;
+		{"FLEET",							"N",						6,							0}, ;
+		{"DEPLOY",							"D",						8,							0}, ;
+		{"VEHICLE",							"C",						16,							0}, ;
+		{"DAK_COD",							tamSX3("DAK_COD")[3],		tamSX3("DAK_COD")[1],		tamSX3("DAK_COD")[2]}, ;
+		{"COMUNIC",							"N",						1,							0}, ;
+		{"REC",								"N",						6,							0}, ;
+		{"SEL_OK",							"C",						2,							0}}
+	//	 Campo								Típo						Tamanho						Decimais
 	local cCampoIdx		:= "REC"
 	local cCampoSel		:= "SEL_OK"
 	local cAliasRote	:= getNextAlias()
@@ -1029,9 +1028,10 @@ user function rotaDrvDt()
 	local cDAK_COD
 	private dDtentrega
 	private cTokenDt
+	private oJsonReceb	:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
 
 	if !ParamBox({{1,		"Data de entrega",			date(),		"",		"",		"",		".T.",		100,		.F.}} /*aPerguntas configuradas*/, "Escolha uma data de entrega" /*Titulo*/, @aResp /*Vetor passado por referencia para retorno das respostas*/, /*bOk Code block para validar o botão Ok*/, /*aButtons Vetor com mais botões além dos botões de Ok e Cancel*/, /*lCentered Centralizar a janela*/, /*nPosX*/, /*nPosY*/, /*oPanel Caso quera adicionar a tela de perguntas a um painel já existente*/, /*cLoad Nome do perfil se caso for carregar*/, .T. /*lCanSave Salvar os dados informados nos parâmetros por perfil*/, .T. /*lUserSave Configuração por usuário*/)
-		mesgAlert("Falha ao carregar data de entrega.", NOME_FONTE)
+		msgAlert("Falha ao carregar data de entrega.", NOME_FONTE)
 		return
 	endIf
 
@@ -1057,8 +1057,8 @@ user function rotaDrvDt()
 		cJsonRaw += 'de":null,"original_total_distance":0,"original_total_time_human":"00:40"},"driver":null,"peoneta":null,"work_shift_name":null,"approved_at":null,"started_at":null,"ended_at":null,"received_orders_size":0,"available_capacity":null,"available_time":null,"remaining_clearance":null,"results":[{"eta":"07:00","eta_started":null,"eta_mode":0,"deposit":true,"position":0,"real_distance":0.0,"planned_distance":null,"start_distance":null,"stop":{"code":null,"name":"MATRIZ CDD","client":null,"address_type":null,"address":"Sueñolar Ypacarai","reference":null,"city":"Ypacaraí","country":"Paraguay","lat":-25.3967453,"lng":-57.2789019,"service_time":null,"priority":null,"skills":null,"time_windows":null},"orders":[]},{"eta":"07:10","eta_started":null,"eta_mode":0,"deposit":false,"position":1,"real_distance":0.0,"planned_distance":0.0,"start_distance":null,"stop":{"code":"000006","name":"INTERPLANETARIOS LIDER                            ","client":"INTERPLANETARIOS LIDER                            ","address_type":null,"address":"AVENIDA FAROL IRLANDES, 181             ","reference":null,"city":"BARUEBAS       ","country":"ALEMANHA                 ","lat":-23.442503,"lng":-58.443832,"service_time":20,"priority":2,"skills":[],"time_windows":[{"start":"07:00","end":"16:00"}]},"orders":[{"idx":1,"code":"000028","units_1":1.0,"units_2":3.1,"units_3":0.0,"alt_code":null,"custom_1":null,"custom_2":null,"custom_3":null,"custom_4":null,"custom_5":null,"custom_6":null,"custom_7":null,"custom_8":null,"custom_9":null,"custom_10":null,"custom_11":null,"number_1":null,"number_2":null,"number_3":null,"number_4":null,"delivery_date":null,"supp'
 		cJsonRaw += 'lier_code":null,"supplier_name":null,"client_code":null,"client_name":"INTERPLANETARIOS LIDER                            ","contact_name":null,"contact_phone":null,"contact_email":null,"sales_zone_code":null,"sales_zone_name":null,"items":[{"code":"01-01-000007         ","description":"SUPER KOALA SUPERIOR PREMIUM                      ","units":1.0,"units_1":null,"units_2":3.1,"units_3":null,"units_4":0,"requested_units":0.0,"custom_1":null,"custom_2":null,"custom_3":null,"custom_4":null,"custom_5":null,"custom_6":null,"custom_7":null,"custom_8":null,"custom_10":null,"custom_11":null,"custom_12":null,"custom_13":null,"custom_14":null,"custom_15":null,"custom_16":null,"custom_17":null,"custom_18":null,"custom_19":null,"custom_20":null,"number_1":null,"number_2":null,"number_3":null,"number_4":null,"number_5":null,"number_6":null,"number_7":null,"number_8":null,"number_9":null,"number_10":null,"item_contents":[]},{"code":"01-02-000007         ","description":"SUPER KOALA SUPERIOR PREMIUM                      ","units":1.0,"units_1":null,"units_2":3.1,"units_3":null,"units_4":0,"requested_units":0.0,"custom_1":null,"custom_2":null,"custom_3":null,"custom_4":null,"custom_5":null,"custom_6":null,"custom_7":null,"custom_8":null,"custom_10":null,"custom_11":null,"custom_12":null,"custom_13":null,"custom_14":null,"custom_15":null,"custom_16":null,"custom_17":null,"custom_18":null,"custom_19":null,"custom_20":null,"number_1":null,"number_2":null,"number_3":null,"number_4":null,"number_5":null,"number_6":null,"number_7":null,"number_8":null,"number_9":null,"number_10":null,"item_contents":[]}]}]},{"eta":"07:40","eta_starte'
 		cJsonRaw += 'd":null,"eta_mode":0,"deposit":true,"position":2,"real_distance":0.0,"planned_distance":0.0,"start_distance":null,"stop":{"code":null,"name":"MATRIZ CDD","client":null,"address_type":null,"address":"Sueñolar Ypacarai","reference":null,"city":"Ypacaraí","country":"Paraguay","lat":-25.3967453,"lng":-57.2789019,"service_time":null,"priority":null,"skills":null,"time_windows":null},"orders":[]}],"kpis":{"orders_pending":1,"orders_approved":0,"orders_partial":0,"orders_rejected":0,"return_eta":"07:40"}}]}]}'
+		oJsonReceb:fromJson(cJsonRaw)
 	*/
-	oJsonReceb:fromJson(cJsonRaw)
 
 	oRotasTab := FWTemporaryTable():new(cAliasRote, aCamposRed)
 	oRotasTab:AddIndex("01", {cCampoIdx})
@@ -1067,14 +1067,14 @@ user function rotaDrvDt()
 
 	cQy := "SELECT " + CRLF
 	cQy += "	DAK_COD, " + CRLF
-	cQy += "	DAK_ZCENAR, " + CRLF
-	cQy += "	DAK_ZDRVRT " + CRLF
+	cQy += "	DAK_ZCENAR, " + CRLF // juk criar campo
+	cQy += "	DAK_ZDRVRT " + CRLF // juk criar campo
 	cQy += "FROM " + CRLF
-	cQy += "	DAK990 " + CRLF
+	cQy += "	" + retSqlName("DAK") + " DAK " + CRLF
 	cQy += "WHERE " + CRLF
 	cQy += "	DAK_FILIAL = '" + fwXFilial("DAK") + "' "
 	cQy += "	AND DAK_ZCENAR = '" + cTokenDt + "' "
-	cQy += "	AND D_E_L_E_T_ = ''; "
+	cQy += "	AND D_E_L_E_T_ = '' "
 	cQy := ChangeQuery(cQy)
 	#IFDEF MINITORAR
 		showLog(cQy)
@@ -1087,14 +1087,18 @@ user function rotaDrvDt()
 		for nIResponse := 1 to len(oJsonReceb['response'])
 			//marcador de nivel: oJsonReceb['response'][nIResponse]['scenario_token']
 			(cAliasRote)->(dbAppend())
-			(cAliasRote)->ROTA := oJsonReceb['response'][nIResponse]['code']
+			if valType(oJsonReceb['response'][nIResponse]['code']) == "C"
+				(cAliasRote)->ROTA := oJsonReceb['response'][nIResponse]['code']
+			else
+				(cAliasRote)->ROTA := "semCar"
+			endIf
 			(cAliasRote)->FLEET := oJsonReceb['response'][nIResponse]['fleet_sequence']
 			(cAliasRote)->DEPLOY := sToD(strTran(oJsonReceb['response'][nIResponse]['deploy_date'], "-", ""))
 
 			cDAK_COD := space(tamSX3("DAK_COD")[1])
 			nCOMUNIC := 0
 			(cAliasDAK)->(dbGoTop())
-			while (cAliasDAK)->(eOF())
+			while !(cAliasDAK)->(eOF())
 				if (cAliasDAK)->DAK_ZDRVRT == (cAliasRote)->ROTA
 					cDAK_COD := (cAliasDAK)->DAK_COD
 					nCOMUNIC := 1 // significa que tem DAK
@@ -1137,6 +1141,8 @@ user function DrvToOMS(cAliasTemp)
 	local cProd
 	local cCliente
 	local aCab, aItem
+	Private lMsHelpAuto := .T. //Variavel de controle interno do ExecAuto
+	Private lMsErroAuto	:= .F. //Variavel que informa a ocorrência de erros no ExecAuto
 
 	dbSelectArea("SC9")
 	SC9->(dbSetOrder(1))
@@ -1149,8 +1155,9 @@ user function DrvToOMS(cAliasTemp)
 
 	(cAliasTemp)->(dbGoTop())
 	nIResponse := 1
-	while (cAliasTemp)->(eOF())
+	while !(cAliasTemp)->(eOF())
 		if (cAliasTemp)->SEL_OK == "  " .or. (cAliasTemp)->COMUNIC == 1
+			(cAliasTemp)->(dbSkip())
 			loop
 		endIf
 
@@ -1171,7 +1178,7 @@ user function DrvToOMS(cAliasTemp)
 			{"DAK_FLGUNI",		"2",							Nil} /*Campo com inicializador padrão  - 2*/, ;
 			{"DAK_TRANSP",		"",								Nil}, ;
 			{"DAK_ZCENAR",		cTokenDt,						nil}, ;
-			{"DAK_ZDRVRT",		(cAliasTemp)->ROTA,				nil}, ;
+			{"DAK_ZDRVRT",		(cAliasTemp)->ROTA,				nil} ;
 			}
 		aItem := {}
 
@@ -1290,7 +1297,7 @@ user function OM200CAR()
 		showLog(cQuery)
 	#ENDIF
 	if FWIsInCallStack("U_DrvToOMS") .or. FWIsInCallStack("U_jukTest") // juk retirar o trecho .or. FWIsInCallStack("U_jukTest")
-		cQuery := strTran(cQuery, " ORDER BY", " AND SC9.C9_DATENT = '" + dToS(dDateC9) + "' ORDER BY")
+		cQuery := strTran(cQuery, " ORDER BY", " AND SC9.C9_DATENT = '" + dToS(dDtentrega) + "' ORDER BY")
 	endIf
 	#IFDEF MINITORAR
 		showLog(cQuery)
@@ -1315,7 +1322,7 @@ user function OM200QRY()
 		showLog(cQuery)
 	#ENDIF
 	if nQuery == 2 .and. FWIsInCallStack("U_DrvToOMS") .or. FWIsInCallStack("U_jukTest") // juk retirar o trecho .or. FWIsInCallStack("U_jukTest")
-		cQuery += " AND SC9.C9_DATENT = '" + dToS(dDateC9) + "'"
+		cQuery += " AND SC9.C9_DATENT = '" + dToS(dDtentrega) + "'"
 	endIf
 	#IFDEF MINITORAR
 		showLog(cQuery)
@@ -1379,7 +1386,7 @@ https://centraldeatendimento.totvs.com/hc/pt-br/articles/5717386591767-Cross-Seg
 @author Julio Carvalho Barberino
 @since 03/09/2026
 @version 0
-/*/ 
+/*/
 user function M460FIM()
 /*
 	 Ponto de entrada M460FIM - Gravação da NF saida
@@ -1398,4 +1405,15 @@ user function M460FIM()
 	#IFDEF MINITORAR
 		showLog("Ponto de entrada M460FIM" + CRLF + VarInfo("PARAMIXB", PARAMIXB, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
 	#ENDIF
+return
+
+/*/{Protheus.doc} OM200MNU
+Ponto de entrada para inclusão de botão no menu "Outras ações" da rotina OMSA200 https://tdn.totvs.com/pages/releaseview.action?pageId=617164479
+@type user function
+@author Julio Carvalho Barberino
+@since 09/09/2026
+@version 0
+/*/
+user function OM200MNU()
+	aadd(aRotina,{'Buscar cargas no DrivIn','U_rotaDrvDt()' , 0 , 3,0,NIL})
 return

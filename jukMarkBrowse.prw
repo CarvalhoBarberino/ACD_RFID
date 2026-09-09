@@ -305,8 +305,8 @@ method jukPlay(cTitulo) class jukMarkBrowse
 		oMarkBrowse:AddLegend("date()<=C9_DATENT.and.COMUNIC==4", "RED", "Enviado com erro")
 		oMarkBrowse:SetValid({|| date() <= C9_DATENT .and. (COMUNIC == 1 .or. COMUNIC==4)})
 	elseIf cTitulo == "Rotas para uma data"
+		oMarkBrowse:AddLegend("COMUNIC==0", "GREEN", "Apto a gravar no OMS")
 		oMarkBrowse:AddLegend("COMUNIC==1", "RED", "Já existe Carga gravada no OMS")
-		oMarkBrowse:AddLegend("COMUNIC==0", "RED", "Apto a gravar no OMS")
 	endIf
 
 	oMarkBrowse:SetColumns(aColunas)
