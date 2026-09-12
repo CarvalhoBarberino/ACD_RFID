@@ -1,10 +1,9 @@
 #INCLUDE "protheus.ch"
 #INCLUDE "RWMAKE.CH"
-
 #DEFINE NOME_FONTE		"NEXACD.PRW"
-#DEFINE MINITORAR
-
 #DEFINE ORACLE
+
+#DEFINE MINITORAR
 
 /*/{Protheus.doc} aptProd
 Funcao faz apontamento de producao. Eh chamado pelo webservice nexSolucoes
@@ -261,14 +260,40 @@ user function CBRETEAN()
 	local oArea				:= fwGetArea()
 	local cId				:= padR(paramIXB[1], tamSX3("ZB0_CODETI")[1])
 	local aRet				:= {}
+	local cQy				:= ""
 
-	if type("cCodZB0") == "U"
-		public cCodZB0 // Cria variavel publica para ser lida no ponto de entrada ACDGCB9
-		cCodZB0 := cId
+	#IFDEF ORACLE
+		cQy += "SELECT " + CRLF
+	#ELSE
+		cQy += "SELECT TOP 1 " + CRLF
+	#ENDIF
+	cQy += "	ZB0_CODPRO, " + CRLF
+	cQy += "	ZB0_QTDE, " + CRLF
+	cQy += "	ZB0_LOTE, " + CRLF
+	cQy += "	ZB0_NUMSER, " + CRLF
+	cQy += "	ZB0_CODETI " + CRLF
+	cQy += "FROM " + CRLF
+	cQy += "	" + retSqlName("ZB0") + " " + CRLF
+	cQy += "WHERE " + CRLF
+	cQy += "	ZB0_CODETI = '" + cId + "' " + CRLF
+	#IFDEF ORACLE
+		cQy += "FETCH FIRST 1 ROW ONLY " + CRLF
+	#ENDIF
+	if (select("TMPNEXACD")) > 0
+		DbSelectArea("TMPNEXACD")
+		TMPNEXACD->(DbCloseArea())
+	EndIf
+	dbUseArea(.T., "TOPCONN", TCGenQry(, , cQy), "TMPNEXACD", .T., .T.)
+	dbSelectArea("TMPNEXACD")
+	TMPNEXACD->(dbGoTop())
+/*
+	if type("cZb0Cod") == "U"
+		public cZb0Cod // Cria variavel publica para ser lida no ponto de entrada ACDGCB9
+		cZb0Cod := cId
 	else
-		cCodZB0 := cId
+		cZb0Cod := cId
 	endIf
-
+*/
 	dbSelectArea('ZB0')
 	ZB0->(dbSetOrder(1))
 	if ZB0->(msSeek(fwXFilial('ZB0') + cId))
@@ -294,20 +319,20 @@ Ponto de entrada chamado no carregamento de opcoes da rotina Ordem de Producao h
 @version 0
 /*/
 user function MTA650MNU()
-/*
-Estrutura do vetor aRotina:
-[1]Nome a aparecer no cabecalho
-[2]Nome da Rotina associada
-[3]Reservado
-[4]Tipo de Transação a ser efetuada, podendo conter:
-1 - Pesquisa e Posiciona em um Banco de Dados
-2 - Simplesmente Mostra os Campos
-3 - Inclui registros no Bancos de Dados
-4 - Altera o registro corrente
-5 - Remove o registro corrente do Banco de Dados
-[5]Nivel de acesso
-[6]Habilita Menu Funcional
-*/
+	/*
+	Estrutura do vetor aRotina:
+	[1]Nome a aparecer no cabecalho
+	[2]Nome da Rotina associada
+	[3]Reservado
+	[4]Tipo de Transação a ser efetuada, podendo conter:
+	1 - Pesquisa e Posiciona em um Banco de Dados
+	2 - Simplesmente Mostra os Campos
+	3 - Inclui registros no Bancos de Dados
+	4 - Altera o registro corrente
+	5 - Remove o registro corrente do Banco de Dados
+	[5]Nivel de acesso
+	[6]Habilita Menu Funcional
+	*/
 	aAdd(aRotina, {'Envia Op p/ SEGEL', 'U_opToSegel()', 0, 4 })
 return
 
@@ -381,7 +406,7 @@ user function opToSegel()
 	Aadd(aHeader, "Content-Type: application/json")
 	Aadd(aHeader, "Authorization: Basic " + encode64(superGetMV("SU_USRSEGE", .T., "SuperEu") + ":" + superGetMV("SU_PSWSEGE", .T., "Teste@123")))
 	#IFDEF MINITORAR
-		showLog(VarInfo("aHeader", aHeader, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
+		showLog(varInfo("aHeader", aHeader, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
 	#ENDIF
 	//Aadd(aHeader, "Authorization: Basic b3BlcmFkb3JAY2xpZW50ZS5jb206cGFzc3dvcmQ=")
 	//Aadd(aHeader, "Authorization: Basic " + Encode64("app01:fTdUlDgdQQ4MRQhLahykiKhON6k97Zfly5SV6fwpa5zCE"))
@@ -759,10 +784,10 @@ user function goDrvIn(cAliasTemp)
 										recLock('SC9',.F.)
 										SC9->C9_ZDRIVIN := aPostRet[2]
 										msUnLock()
-										recLock((cAliasTemp),.F.)
+										recLock((cAliasTemp),.F.) // juk verificar se o certo é assim recLock(cAliasTemp,.F.). Ver PE OM200FIM
 										(cAliasTemp)->COMUNIC := 4
 										(cAliasTemp)->SEL_OK := "  "
-										msUnLock()
+										msUnLock() // juk verificar se o certo é assim (cAliasTemp)->(msUnLock()). Ver PE OM200FIM
 									endIf
 								next nIDetails
 							endIf
@@ -988,6 +1013,7 @@ Monta markBrowse com rotas do DrivIn para uma data
 @version 0
 /*/
 user function rotaDrvDt()
+	local oArea			:= fwGetArea()
 	local cUrl			:= superGetMV("SU_DIAPIUR", .T., "")
 	local cPath
 	local aResp			:= {}
@@ -995,39 +1021,39 @@ user function rotaDrvDt()
 	local oRestClient	:= FWRest():New(cUrl) // https://tdn.totvs.com/display/public/framework/FWRest
 	local cApiKey		:= superGetMV("SU_DIAPIKE", .T., "")
 	local aHeader		:= {"X-API-Key: " + cApiKey, "Content-Type: application/json"}
-	local cJsonRaw
 
 	local aEstrutura	:= {;
-		{"ROTA",		"Rota",				"C",						6,							0,							""}, ;
-		{"FLEET",		"Fleet",			"N",						6,							0,							""}, ;
-		{"DEPLOY",		"Deploy",			"D",						8,							0,							""}, ;
-		{"VEHICLE",		"Vehicle",			"C",						16,							0,							""}, ;
-		{"DAK_COD",		"CargaProtheus",	tamSX3("DAK_COD")[3],		tamSX3("DAK_COD")[1],		tamSX3("DAK_COD")[2],		""}, ;
-		{"COMUNIC",		"Comunic",			"N",						1,							0,							""}, ;
-		{"REC",			"Rec",				"N",						6,							0,							""}, ;
-		{"SEL_OK",		"Sel",				"C",						2,							0,							""}}
-	//	 Campo			Título				Típo						Tamanho						Decimais					Mascara
+		{"DEPLOY",		"Deploy date",			"D",						8,							0,							""}, ;
+		{"CENDESC",		"Scenario Description",	"C",						30,							0,							""}, ;
+		{"ROTA",		"Ruta",					"C",						6,							0,							""}, ;
+		{"VEHICLE",		"Vehicle",				"C",						16,							0,							""}, ;
+		{"VEHICLEDES",	"Vehicle Description",	"C",						16,							0,							""}, ;
+		{"FLEET",		"fleet_sequence",		"N",						6,							0,							""}, ;
+		{"DAK_COD",		"CargaProtheus",		tamSX3("DAK_COD")[3],		tamSX3("DAK_COD")[1],		tamSX3("DAK_COD")[2],		""}, ;
+		{"REC",			"Rec",					"N",						6,							0,							""}, ;
+		{"SEL_OK",		"Sel",					"C",						2,							0,							""}}
+	//	 Campo			Título					Típo						Tamanho						Decimais					Mascara
 	local aCamposRed	:= {;
-		{"ROTA",							"C",						6,							0}, ;
-		{"FLEET",							"N",						6,							0}, ;
-		{"DEPLOY",							"D",						8,							0}, ;
-		{"VEHICLE",							"C",						16,							0}, ;
-		{"DAK_COD",							tamSX3("DAK_COD")[3],		tamSX3("DAK_COD")[1],		tamSX3("DAK_COD")[2]}, ;
-		{"COMUNIC",							"N",						1,							0}, ;
-		{"REC",								"N",						6,							0}, ;
-		{"SEL_OK",							"C",						2,							0}}
-	//	 Campo								Típo						Tamanho						Decimais
+		{"DEPLOY",								"D",						8,							0,							""}, ;
+		{"CENDESC",								"C",						30,							0,							""}, ;
+		{"ROTA",								"C",						6,							0,							""}, ;
+		{"VEHICLE",								"C",						16,							0,							""}, ;
+		{"VEHICLEDES",							"C",						16,							0,							""}, ;
+		{"FLEET",								"N",						6,							0,							""}, ;
+		{"DAK_COD",								tamSX3("DAK_COD")[3],		tamSX3("DAK_COD")[1],		tamSX3("DAK_COD")[2],		""}, ;
+		{"REC",									"N",						6,							0,							""}, ;
+		{"SEL_OK",								"C",						2,							0,							""}}
+	//	 Campo									Típo						Tamanho						Decimais
+
 	local cCampoIdx		:= "REC"
 	local cCampoSel		:= "SEL_OK"
-	local cAliasRote	:= getNextAlias()
+	local cAliasRota	:= getNextAlias()
 	local cAliasDAK		:= getNextAlias()
 	local oMarkBr
-	local cAliasTemp
 	local nIResponse
-	local nCOMUNIC
 	local cDAK_COD
 	private dDtentrega
-	private cTokenDt
+	private cTokenDt, cAliasTemp
 	private oJsonReceb	:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
 
 	if !ParamBox({{1,		"Data de entrega",			date(),		"",		"",		"",		".T.",		100,		.F.}} /*aPerguntas configuradas*/, "Escolha uma data de entrega" /*Titulo*/, @aResp /*Vetor passado por referencia para retorno das respostas*/, /*bOk Code block para validar o botão Ok*/, /*aButtons Vetor com mais botões além dos botões de Ok e Cancel*/, /*lCentered Centralizar a janela*/, /*nPosX*/, /*nPosY*/, /*oPanel Caso quera adicionar a tela de perguntas a um painel já existente*/, /*cLoad Nome do perfil se caso for carregar*/, .T. /*lCanSave Salvar os dados informados nos parâmetros por perfil*/, .T. /*lUserSave Configuração por usuário*/)
@@ -1060,15 +1086,15 @@ user function rotaDrvDt()
 		oJsonReceb:fromJson(cJsonRaw)
 	*/
 
-	oRotasTab := FWTemporaryTable():new(cAliasRote, aCamposRed)
+	oRotasTab := FWTemporaryTable():new(cAliasRota, aCamposRed)
 	oRotasTab:AddIndex("01", {cCampoIdx})
 	oRotasTab:Create()
-	cAliasRote := oRotasTab:getAlias()
+	cAliasRota := oRotasTab:getAlias()
 
 	cQy := "SELECT " + CRLF
 	cQy += "	DAK_COD, " + CRLF
-	cQy += "	DAK_ZCENAR, " + CRLF // juk criar campo
-	cQy += "	DAK_ZDRVRT " + CRLF // juk criar campo
+	cQy += "	DAK_ZCENAR, " + CRLF
+	cQy += "	DAK_ZDRVRT " + CRLF
 	cQy += "FROM " + CRLF
 	cQy += "	" + retSqlName("DAK") + " DAK " + CRLF
 	cQy += "WHERE " + CRLF
@@ -1086,40 +1112,40 @@ user function rotaDrvDt()
 	if 0 < len(oJsonReceb['response'])
 		for nIResponse := 1 to len(oJsonReceb['response'])
 			//marcador de nivel: oJsonReceb['response'][nIResponse]['scenario_token']
-			(cAliasRote)->(dbAppend())
-			if valType(oJsonReceb['response'][nIResponse]['code']) == "C"
-				(cAliasRote)->ROTA := oJsonReceb['response'][nIResponse]['code']
-			else
-				(cAliasRote)->ROTA := "semCar"
-			endIf
-			(cAliasRote)->FLEET := oJsonReceb['response'][nIResponse]['fleet_sequence']
-			(cAliasRote)->DEPLOY := sToD(strTran(oJsonReceb['response'][nIResponse]['deploy_date'], "-", ""))
-
 			cDAK_COD := space(tamSX3("DAK_COD")[1])
-			nCOMUNIC := 0
 			(cAliasDAK)->(dbGoTop())
 			while !(cAliasDAK)->(eOF())
-				if (cAliasDAK)->DAK_ZDRVRT == (cAliasRote)->ROTA
+				if (cAliasDAK)->DAK_ZDRVRT == (cAliasRota)->ROTA
 					cDAK_COD := (cAliasDAK)->DAK_COD
-					nCOMUNIC := 1 // significa que tem DAK
 				endIf
 				(cAliasDAK)->(dbSkip())
 			endDo
 
-			(cAliasRote)->DAK_COD := cDAK_COD
-			(cAliasRote)->COMUNIC := nCOMUNIC
-			(cAliasRote)->REC := nIResponse
-			(cAliasRote)->SEL_OK := "  " // juk pensar melhor em como será definido quais cargas serão gravadas. Não pode gravar o que já foi gravado, apenas avisar usuário o que já foi gravado e gravar o resto
-			(cAliasRote)->(dbCommit())
+			(cAliasRota)->(dbAppend())
+			(cAliasRota)->DEPLOY		:= sToD(strTran(oJsonReceb['response'][nIResponse]['deploy_date'], "-", ""))
+			(cAliasRota)->CENDESC		:= oJsonReceb['response'][nIResponse]['scenario_description']
+			(cAliasRota)->ROTA			:= iif(valType(oJsonReceb['response'][nIResponse]['code']) == "C", oJsonReceb['response'][nIResponse]['code'], "      ")
+			(cAliasRota)->VEHICLE		:= oJsonReceb['response'][nIResponse]['vehicle']
+			(cAliasRota)->VEHICLEDES	:= oJsonReceb['response'][nIResponse]['description']
+			(cAliasRota)->FLEET			:= oJsonReceb['response'][nIResponse]['fleet_sequence']
+			(cAliasRota)->DAK_COD		:= cDAK_COD
+			(cAliasRota)->REC			:= nIResponse
+			(cAliasRota)->SEL_OK		:= "  "
+
+			(cAliasRota)->(dbCommit())
 		next nIResponse
 	endIf
 	(cAliasDAK)->(dbCloseArea())
 
-	oMarkBr := jukMarkBrowse():New(aEstrutura, cAliasRote, cCampoIdx, cCampoSel)
+	oMarkBr := jukMarkBrowse():New(aEstrutura, cAliasRota, cCampoIdx, cCampoSel)
 	cAliasTemp := oMarkBr:getAliasTemp()
 	oMarkBr:setARotina({;
 		{"Importar p/ OMS",	'U_DrvToOMS("' + cAliasTemp + '")',			2,		0}})
 	oMarkBr:jukPlay("Rotas para uma data")
+	#IFDEF MINITORAR
+		showLog(VarInfo("oArea", oArea, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
+	#ENDIF
+	fwRestArea(oArea)
 return
 
 /*/{Protheus.doc} DrvToOMS
@@ -1132,7 +1158,6 @@ Grava cargas do DrivIn no OMS do protheus
 /*/
 user function DrvToOMS(cAliasTemp)
 	local nIResponse, nITrips, nIResults, nIOrders, nIItems
-	local oArea			:= fwGetArea()
 	local cItemC9
 	local cPedido
 	local cPedidoAux	:= ""
@@ -1141,8 +1166,8 @@ user function DrvToOMS(cAliasTemp)
 	local cProd
 	local cCliente
 	local aCab, aItem
-	Private lMsHelpAuto := .T. //Variavel de controle interno do ExecAuto
-	Private lMsErroAuto	:= .F. //Variavel que informa a ocorrência de erros no ExecAuto
+	Private lMsHelpAuto
+	Private lMsErroAuto
 
 	dbSelectArea("SC9")
 	SC9->(dbSetOrder(1))
@@ -1156,7 +1181,7 @@ user function DrvToOMS(cAliasTemp)
 	(cAliasTemp)->(dbGoTop())
 	nIResponse := 1
 	while !(cAliasTemp)->(eOF())
-		if (cAliasTemp)->SEL_OK == "  " .or. (cAliasTemp)->COMUNIC == 1
+		if (cAliasTemp)->SEL_OK == "  " .or. allTrim((cAliasTemp)->DAK_COD) != ""
 			(cAliasTemp)->(dbSkip())
 			loop
 		endIf
@@ -1177,8 +1202,9 @@ user function DrvToOMS(cAliasTemp)
 			{"DAK_ACEFIN",		"2",							Nil}, ;
 			{"DAK_FLGUNI",		"2",							Nil} /*Campo com inicializador padrão  - 2*/, ;
 			{"DAK_TRANSP",		"",								Nil}, ;
+			{"DAK_ZDRVRT",		(cAliasTemp)->ROTA,				nil}, ;
 			{"DAK_ZCENAR",		cTokenDt,						nil}, ;
-			{"DAK_ZDRVRT",		(cAliasTemp)->ROTA,				nil} ;
+			{"DAK_ZCENDE",		(cAliasTemp)->CENDESC,			nil} ;
 			}
 		aItem := {}
 
@@ -1262,24 +1288,26 @@ user function DrvToOMS(cAliasTemp)
 			next nITrips
 		endIf
 
+		#IFDEF MONITORAR
+			showLog(varInfo("aCab", aCab, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
+			showLog(varInfo("aItem", aItem, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
+		#ENDIF
+		lMsHelpAuto := .T. //Variavel de controle interno do ExecAuto
+		lMsErroAuto	:= .F. //Variavel que informa a ocorrência de erros no ExecAuto
+		MSExecAuto({|x, y, z| OMSA200(x, y, z)}, aCab, aItem, 3)
+		If lMsErroAuto
+			Alert("Erro no ExecAuto do OMSA200")
+			cMsgErro := MostraErro()
+			DisarmTransaction()
+			Alert(cMsgErro)
+		Else
+			Alert("Sucesso na execução do ExecAuto OMSA200")
+		EndIf
+
 		(cAliasTemp)->(dbSkip())
 		nIResponse += 1
 	endDo
-
-	MSExecAuto( { |x, y, z| OMSA200(x, y, z) }, aCab, aItem, 3 )
-	If lMsErroAuto
-		Alert("Erro no ExecAuto do OMSA200")
-		cMsgErro := MostraErro()
-		DisarmTransaction()
-		Alert(cMsgErro)
-	Else
-		Alert("Sucesso na execução do ExecAuto OMSA200")
-	EndIf
-
-	SC5->(dbCloseArea())
-	SA1->(dbCloseArea())
-	SC9->(dbCloseArea())
-	fwRestArea(oArea)
+	oMarkBrowse:refresh(.F.)
 return
 
 /*/{Protheus.doc} OM200CAR
@@ -1293,15 +1321,12 @@ Ponto de entrada para alterar a query que indica quais registros da C9 serão peg
 user function OM200CAR()
 	local cQuery := PARAMIXB[1]
 
-	#IFDEF MINITORAR
-		showLog(cQuery)
-	#ENDIF
-	if FWIsInCallStack("U_DrvToOMS") .or. FWIsInCallStack("U_jukTest") // juk retirar o trecho .or. FWIsInCallStack("U_jukTest")
+	if FWIsInCallStack("U_rotaDrvDt")
 		cQuery := strTran(cQuery, " ORDER BY", " AND SC9.C9_DATENT = '" + dToS(dDtentrega) + "' ORDER BY")
+		#IFDEF MINITORAR
+			showLog(cQuery)
+		#ENDIF
 	endIf
-	#IFDEF MINITORAR
-		showLog(cQuery)
-	#ENDIF
 return cQuery
 
 /*/{Protheus.doc} OM200QRY
@@ -1318,15 +1343,12 @@ user function OM200QRY()
 	local aArrayMod		:= PARAMIXB[3] //Modelos de carga
 	local nQuery		:= PARAMIXB[4] //Número da query no UNION (1,2)
 
-	#IFDEF MINITORAR
-		showLog(cQuery)
-	#ENDIF
-	if nQuery == 2 .and. FWIsInCallStack("U_DrvToOMS") .or. FWIsInCallStack("U_jukTest") // juk retirar o trecho .or. FWIsInCallStack("U_jukTest")
+	if nQuery == 2 .and. FWIsInCallStack("U_rotaDrvDt")
 		cQuery += " AND SC9.C9_DATENT = '" + dToS(dDtentrega) + "'"
+		#IFDEF MINITORAR
+			showLog(cQuery)
+		#ENDIF
 	endIf
-	#IFDEF MINITORAR
-		showLog(cQuery)
-	#ENDIF
 return cQuery
 
 /*/{Protheus.doc} ACD100FI
@@ -1341,10 +1363,10 @@ user function ACD100FI()
 	local nOrig		:= PARAMIXB[1] // 1 = Pedido de Venda / 2 = Nota Fiscal / 3 = Ordem de Produção
 	local cFil		:= ".T." // Validações do usuário
 
-	#IFDEF MONITORAR
-		showLog("Ponto de entrada utilizado para filtrar os itens exibidos na listagem de Pedidos de Venda / Notas Fiscais / Ordens de Produção ao gerar Ordens de Separação. https://tdn.totvs.com/display/public/mp/ACD100FI+-+Filtra+Itens+em+Pedidos+de+Venda+--+30561" + CRLF + "MV_PAR11 = Carga de?		 MV_PAR12 = Carga Ate?		incluidas no grupo de pergunta AIA102")
-	#ENDIF
 	if PARAMIXB[1] == 1
+		#IFDEF MONITORAR
+			showLog("Ponto de entrada utilizado para filtrar os itens exibidos na listagem de Pedidos de Venda / Notas Fiscais / Ordens de Produção ao gerar Ordens de Separação. https://tdn.totvs.com/display/public/mp/ACD100FI+-+Filtra+Itens+em+Pedidos+de+Venda+--+30561" + CRLF + "MV_PAR11 = Carga de?		 MV_PAR12 = Carga Ate?		incluidas no grupo de pergunta AIA102")
+		#ENDIF
 		cFil := "SC9->C9_CARGA >= MV_PAR11 .and. SC9->C9_CARGA <= MV_PAR12" // MV_PAR11 = Carga de?		 MV_PAR12 = Carga Ate?		incluidas no grupo de pergunta AIA102
 	endIf
 return {nOrig,cFil}
@@ -1357,12 +1379,19 @@ Ponto de entrada Responsável por gravar os dados da separação. EM QUE PONTO:No f
 @version 0
 /*/
 user function ACDGCB9()
+	local cId :=  " "
+
 	#IFDEF MONITORAR
 		showLog("Ponto de entrada ACDGCB9 Responsável por gravar os dados da separação. EM QUE PONTO:No final da função, permite validar a quantidade separada. https://tdn.totvs.com/pages/releaseview.action?pageId=6091045")
 	#ENDIF
-	if valType(cCodZB0) == "C" // juk verificar se deve alterar de valType para type e testar
-		CB9->CB9_ZB0COD := cCodZB0 // Variavel publica criada no ponto de entrada CBRETEAN
+/*
+	if type("cZb0Cod") == "C"
+		CB9->CB9_ZB0COD := cZb0Cod // Variavel publica criada no ponto de entrada CBRETEAN
 	endIf
+*/
+	TMPNEXACD->(DbGoTop()) // tabela temporária criada no ponto de entrada CBRETEAN
+	cId := TMPNEXACD->ZB0_CODETI
+	CB9->CB9_XETIQ := cId // Customização de usuário...
 return
 
 /*/{Protheus.doc} ACD170VE
@@ -1416,4 +1445,33 @@ Ponto de entrada para inclusão de botão no menu "Outras ações" da rotina OMSA200
 /*/
 user function OM200MNU()
 	aadd(aRotina,{'Buscar cargas no DrivIn','U_rotaDrvDt()' , 0 , 3,0,NIL})
+return
+
+/*/{Protheus.doc} OM200FIM
+Este Ponto de Entrada é executado após a geração da carga e antes da atualização da tela na rotina OMSA200 (Montagem de Carga) https://tdn.totvs.com/display/public/PROT/DT+PE+OM200FIM+-+Final+do+carregamento
+@type user function
+@author Julio Carvalho Barberino
+@since 10/09/2026
+@version 0
+/*/
+user function OM200FIM()
+	if FWIsInCallStack("U_rotaDrvDt")
+		#IFDEF MINITORAR
+			if (DAK->DAK_ZDRVRT == (cAliasTemp)->ROTA) .or. (DAK->DAK_ZCENAR == cTokenDt) .or. (DAK->DAK_ZCENDE == (cAliasTemp)->CENDESC)
+				msgAlert("Já existem valores gravados nos campos customizados, talvez o PE OM200FIM seja desnecessário", 	NOME_FONTE)
+			endIf
+		#ENDIF
+		if recLock("DAK",.F.)
+			DAK->DAK_ZDRVRT := (cAliasTemp)->ROTA // declarado como private em U_rotaDrvDt()
+			DAK->DAK_ZCENAR := cTokenDt // declarado como private em U_rotaDrvDt()
+			DAK->DAK_ZCENDE := (cAliasTemp)->CENDESC // declarado como private em U_rotaDrvDt()
+			DAK->(msUnlock())
+			recLock(cAliasTemp,.F.)
+			(cAliasTemp)->DAK_COD := DAK->DAK_COD
+			(cAliasTemp)->(msUnLock())
+		endIf
+		#IFDEF MINITORAR
+			msgAlert((cAliasTemp)->DAK_COD + " == " + DAK->DAK_COD, NOME_FONTE)
+		#ENDIF
+	endIf
 return

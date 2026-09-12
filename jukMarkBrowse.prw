@@ -305,8 +305,9 @@ method jukPlay(cTitulo) class jukMarkBrowse
 		oMarkBrowse:AddLegend("date()<=C9_DATENT.and.COMUNIC==4", "RED", "Enviado com erro")
 		oMarkBrowse:SetValid({|| date() <= C9_DATENT .and. (COMUNIC == 1 .or. COMUNIC==4)})
 	elseIf cTitulo == "Rotas para uma data"
-		oMarkBrowse:AddLegend("COMUNIC==0", "GREEN", "Apto a gravar no OMS")
-		oMarkBrowse:AddLegend("COMUNIC==1", "RED", "Já existe Carga gravada no OMS")
+		oMarkBrowse:AddLegend("allTrim(DAK_COD)==''", "GREEN", "Apto a gravar no OMS")
+		oMarkBrowse:AddLegend("allTrim(DAK_COD)!=''", "RED", "Já existe Carga gravada no OMS")
+		oMarkBrowse:SetValid({|| allTrim(DAK_COD)==''})
 	endIf
 
 	oMarkBrowse:SetColumns(aColunas)
@@ -338,3 +339,4 @@ return ::cErro
 static function menuDef(aRotina)
 	local aRet := aClone(aRotina)
 return aRet
+
