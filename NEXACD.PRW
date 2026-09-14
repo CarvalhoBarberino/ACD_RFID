@@ -257,7 +257,6 @@ Ponto de entrada chamado quando faz leitura do codigo de barras no coletor https
 @return aRet, Espera devolver aRet = {"Código do Produto","Quantidade(Embalagem normalmente analisado na nQE := SB1->B1_QE no processo padrão)","Lote","Data de Validade","Número de Série","Endereço Destino"}
 /*/
 user function CBRETEAN()
-	local oArea				:= fwGetArea()
 	local cId				:= padR(paramIXB[1], tamSX3("ZB0_CODETI")[1])
 	local aRet				:= {}
 	local cQy				:= ""
@@ -280,8 +279,8 @@ user function CBRETEAN()
 		cQy += "FETCH FIRST 1 ROW ONLY " + CRLF
 	#ENDIF
 	if (select("TMPNEXACD")) > 0
-		DbSelectArea("TMPNEXACD")
-		TMPNEXACD->(DbCloseArea())
+		dbSelectArea("TMPNEXACD")
+		TMPNEXACD->(dbCloseArea())
 	EndIf
 	dbUseArea(.T., "TOPCONN", TCGenQry(, , cQy), "TMPNEXACD", .T., .T.)
 	dbSelectArea("TMPNEXACD")
@@ -307,8 +306,6 @@ user function CBRETEAN()
 			}
 		// https://centraldeatendimento.totvs.com/hc/es/articles/10001808355991-Cross-Segmentos-TOTVS-Backoffice-L%C3%ADnea-Protheus-MI-Recolecci%C3%B3n-de-datos-SIGAACD-Uso-de-par%C3%A1metro-MV-SUBNSER-en-ACDV166
 	endIf
-
-	fwRestArea(oArea)
 return aRet
 
 /*/{Protheus.doc} MTA650MNU
@@ -1382,7 +1379,7 @@ user function ACDGCB9()
 	local cId :=  " "
 
 	#IFDEF MONITORAR
-		showLog("Ponto de entrada ACDGCB9 Responsável por gravar os dados da separação. EM QUE PONTO:No final da função, permite validar a quantidade separada. https://tdn.totvs.com/pages/releaseview.action?pageId=6091045")
+		conOut("Ponto de entrada ACDGCB9 Responsável por gravar os dados da separação. EM QUE PONTO:No final da função, permite validar a quantidade separada. https://tdn.totvs.com/pages/releaseview.action?pageId=6091045")
 	#ENDIF
 /*
 	if type("cZb0Cod") == "C"
@@ -1391,7 +1388,8 @@ user function ACDGCB9()
 */
 	TMPNEXACD->(DbGoTop()) // tabela temporária criada no ponto de entrada CBRETEAN
 	cId := TMPNEXACD->ZB0_CODETI
-	CB9->CB9_XETIQ := cId // Customização de usuário...
+	CB9->CB9_ZB0COD := cId // Customização de usuário...
+	TMPNEXACD->(dbCloseArea())
 return
 
 /*/{Protheus.doc} ACD170VE
