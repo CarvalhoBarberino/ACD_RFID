@@ -964,7 +964,7 @@ static function getTokenDt(dDtentrega)
 	endIf
 
 	if len(oJResposta['response']) == 0
-		msgAlert("Houve erro no retorno do GET " + cPath + CRLF + "Array vazio", NOME_FONTE)
+		msgAlert("Não há cenários para a data de entrega" + dToC(dDtentrega), NOME_FONTE)
 		return ""
 	endIf
 return oJResposta['response']
@@ -1060,6 +1060,10 @@ user function rotaDrvDt()
 
 	dDtentrega := aResp[1]
 	aTokensDt := getTokenDt(dDtentrega)
+	if valType(aTokensDt) != "A" .or. len(aTokensDt) == 0
+		msgAlert("Não há cenários para a data de entrega" + dToC(dDtentrega), NOME_FONTE)
+		return ""
+	endIf
 	cTokenDt := escolheTk(aTokensDt)
 	cPath := superGetMV("SU_DIRESUL", .T., "") + "token=" + cTokenDt + "&unassigned=1"
 	oRestClient:SetPath(cPath)
@@ -1406,33 +1410,6 @@ User Function ACD170VE()
 		showLog("Ponto de entrada compilado apenas para entrar numa validação do fonte acdv166.prg If lContinua .And. lACD170VE https://tdn.totvs.com/display/public/PROT/PE+ACD170VE+Valida+Etiqueta+do+Produto")
 	#ENDIF
 Return aEtiq
-
-/*/{Protheus.doc} M460FIM
-https://centraldeatendimento.totvs.com/hc/pt-br/articles/5717386591767-Cross-Segmentos-Backoffice-Protheus-SIGAFAT-Ponto-de-Entrada-M460FIM		https://terminaldeinformacao.com/knowledgebase/ponto-de-entrada-m460fim/
-@type user function
-@author Julio Carvalho Barberino
-@since 03/09/2026
-@version 0
-/*/
-user function M460FIM()
-/*
-	 Ponto de entrada M460FIM - Gravação da NF saida
-	 Este P.E. é chamado após a gravação da NF de Saída e fora da transação.
-	#Par01    - PARAMIXB[1] - Número da NF
-	#Par02    - PARAMIXB[2] - Série da NF
-	#Par03    - PARAMIXB[3] - Cliente/fornecedor da NF
-	#Par03    - PARAMIXB[4] - Loja da NF
-	*Return   - Sem nenhuma retorno
-*/
-	local cNumNFS   := PARAMIXB[1] // Número da NF
-	local cSerieNFS := PARAMIXB[2] // Série da NF
-	local cClieFor  := PARAMIXB[3] // Cliente/fornecedor da NF
-	local cLoja     := PARAMIXB[4] // Loja da NF
-
-	#IFDEF MINITORAR
-		showLog("Ponto de entrada M460FIM" + CRLF + VarInfo("PARAMIXB", PARAMIXB, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
-	#ENDIF
-return
 
 /*/{Protheus.doc} OM200MNU
 Ponto de entrada para inclusão de botão no menu "Outras ações" da rotina OMSA200 https://tdn.totvs.com/pages/releaseview.action?pageId=617164479
