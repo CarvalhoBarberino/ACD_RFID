@@ -840,6 +840,8 @@ paths:
                         type: string
                       fat_serie:
                         type: string
+                      cliente:
+                        type: string
                       itens:
                         type: array
                         minItems: 1
@@ -869,15 +871,16 @@ paths:
                     - filial: '01'
                       fatura: '0300010035585'
                       fat_serie: S1
+                      cliente: '1234567890001'
                       itens:
                         - item: '1'
-                          pedido: '666666'
-                          ordsep: '999999'
+                          pedido: AACSJW
+                          ordsep: '000006'
                           cod_prod: ABSNKR100190
-                          lote: AABV8801001
-                          numserie: ASP0469712
+                          lote: AAEIMA0100
+                          numserie: '000119'
                           qtd: 1
-                          tag: 30B1B3A323214EAFDBB6F46B
+                          tag: 300862D3D18BE4588BF15F48
       description: Endpoint PROTHEUS dedicado a receber faturas que passaram no portal de saída expedição.
       parameters: []
 components:
