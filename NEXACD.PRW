@@ -3,7 +3,7 @@
 #DEFINE NOME_FONTE		"NEXACD.PRW"
 #DEFINE ORACLE
 
-#DEFINE MINITORAR
+#DEFINE MONITORAR
 
 /*/{Protheus.doc} aptProd
 Funcao faz apontamento de producao. Eh chamado pelo webservice nexSolucoes
@@ -397,12 +397,12 @@ user function opToSegel()
 	OJson0["familia"] := allTrim(SB1->B1_MARCA) + allTrim(SB1->B1_FAMILY)
 
 	cJson0 := OJson0:ToJson()
-	#IFDEF MINITORAR
+	#IFDEF MONITORAR
 		showLog(cJson0)
 	#ENDIF
 	Aadd(aHeader, "Content-Type: application/json")
 	Aadd(aHeader, "Authorization: Basic " + encode64(superGetMV("SU_USRSEGE", .T., "SuperEu") + ":" + superGetMV("SU_PSWSEGE", .T., "Teste@123")))
-	#IFDEF MINITORAR
+	#IFDEF MONITORAR
 		showLog(varInfo("aHeader", aHeader, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
 	#ENDIF
 	//Aadd(aHeader, "Authorization: Basic b3BlcmFkb3JAY2xpZW50ZS5jb206cGFzc3dvcmQ=")
@@ -419,7 +419,7 @@ user function opToSegel()
 	else
 		cRet += "ERRO" + CRLF + oRestClient:getLastError() + CRLF + oRestClient:getResult()
 	endIf
-	#IFDEF MINITORAR
+	#IFDEF MONITORAR
 		showLog(cRet) // juk Continuar daqui. Precisa decidir o que fazer com a informação de retorno. Precisa criar campo na SC2 pra guardar o retorno
 	#ENDIF
 
@@ -575,7 +575,7 @@ user function C9DrivIn()
 	cQy += "	C9_ITEM, " + CRLF
 	cQy += "	C9_SEQUEN"
 	cQy := ChangeQuery(cQy)
-	#IFDEF MINITORAR
+	#IFDEF MONITORAR
 		showLog(cQy)
 	#ENDIF
 
@@ -736,7 +736,7 @@ user function goDrvIn(cAliasTemp)
 	endIf
 
 	for nI := 2 to len(aDtEntrJson)
-		#IFDEF MINITORAR
+		#IFDEF MONITORAR
 			showLog("Enviar POST de:" + CRLF + VarInfo("Data de entrega " + cValToChar(nI) + " de " + cValToChar(len(aDtEntrJson)) + CRLF, aDtEntrJson[nI, 2]:ToJson(), /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
 		#ENDIF
 		aTokensDt := getTokenDt(aDtEntrJson[nI, 1])
@@ -1068,7 +1068,7 @@ user function rotaDrvDt()
 	cPath := superGetMV("SU_DIRESUL", .T., "") + "token=" + cTokenDt + "&unassigned=1"
 	oRestClient:SetPath(cPath)
 	if oRestClient:get(aHeader)
-		#IFDEF MINITORAR
+		#IFDEF MONITORAR
 			showLog(oRestClient:getResult())
 		#ENDIF
 		oJsonReceb:fromJson(oRestClient:getResult())
@@ -1103,7 +1103,7 @@ user function rotaDrvDt()
 	cQy += "	AND DAK_ZCENAR = '" + cTokenDt + "' "
 	cQy += "	AND D_E_L_E_T_ = '' "
 	cQy := ChangeQuery(cQy)
-	#IFDEF MINITORAR
+	#IFDEF MONITORAR
 		showLog(cQy)
 	#ENDIF
 	cAliasDAK := getNextAlias()
@@ -1143,7 +1143,7 @@ user function rotaDrvDt()
 	oMarkBr:setARotina({;
 		{"Importar p/ OMS",	'U_DrvToOMS("' + cAliasTemp + '")',			2,		0}})
 	oMarkBr:jukPlay("Rotas para uma data")
-	#IFDEF MINITORAR
+	#IFDEF MONITORAR
 		showLog(VarInfo("oArea", oArea, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
 	#ENDIF
 	fwRestArea(oArea)
@@ -1324,7 +1324,7 @@ user function OM200CAR()
 
 	if FWIsInCallStack("U_rotaDrvDt")
 		cQuery := strTran(cQuery, " ORDER BY", " AND SC9.C9_DATENT = '" + dToS(dDtentrega) + "' ORDER BY")
-		#IFDEF MINITORAR
+		#IFDEF MONITORAR
 			showLog(cQuery)
 		#ENDIF
 	endIf
@@ -1346,7 +1346,7 @@ user function OM200QRY()
 
 	if nQuery == 2 .and. FWIsInCallStack("U_rotaDrvDt")
 		cQuery += " AND SC9.C9_DATENT = '" + dToS(dDtentrega) + "'"
-		#IFDEF MINITORAR
+		#IFDEF MONITORAR
 			showLog(cQuery)
 		#ENDIF
 	endIf
@@ -1431,7 +1431,7 @@ Este Ponto de Entrada é executado após a geração da carga e antes da atualização
 /*/
 user function OM200FIM()
 	if FWIsInCallStack("U_rotaDrvDt")
-		#IFDEF MINITORAR
+		#IFDEF MONITORAR
 			if (DAK->DAK_ZDRVRT == (cAliasTemp)->ROTA) .or. (DAK->DAK_ZCENAR == cTokenDt) .or. (DAK->DAK_ZCENDE == (cAliasTemp)->CENDESC)
 				msgAlert("Já existem valores gravados nos campos customizados, talvez o PE OM200FIM seja desnecessário", 	NOME_FONTE)
 			endIf
@@ -1445,8 +1445,172 @@ user function OM200FIM()
 			(cAliasTemp)->DAK_COD := DAK->DAK_COD
 			(cAliasTemp)->(msUnLock())
 		endIf
-		#IFDEF MINITORAR
+		#IFDEF MONITORAR
 			msgAlert((cAliasTemp)->DAK_COD + " == " + DAK->DAK_COD, NOME_FONTE)
 		#ENDIF
 	endIf
+return
+
+
+/*/{Protheus.doc} docToSeg
+Funcao chamada a partir do PE LOCXPE11 e serve para enviar dados de faturamento para a Segel
+@type user function
+@author Julio Carvalho Barberino
+@since 24/09/2026
+@version 0
+@param cFilOri, filial
+@param cDoc, numero do documento fiscal
+@param cSerie, serie do documento fiscal
+/*/
+user function docToSeg(cFilOri, cDoc, cSerie) // 1.2.2.2.4.2
+	local oArea			:= fwGetArea()
+	local cAliasZB0		:= getNextAlias()
+	local cQy			:= ""
+	local aItens		:= {}
+	local oJsonItem
+	local oJsonOut		:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
+	local oJsonfat		:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
+	local cJsonOut
+	local cUrl			:= "http://192.168.0.3:8000" // juk usar parametros
+	local cPath			:= "/faturas_outbound" // juk usar parametros
+	local oRestClient	:= FWRest():New(cUrl) // https://tdn.totvs.com/display/public/framework/FWRest
+	local cRet
+
+	cQy += "SELECT " + CRLF
+	cQy += "	F2.F2_DOC, " + CRLF
+	cQy += "	F2.F2_SERIE, " + CRLF
+	cQy += "	C9.C9_PEDIDO, " + CRLF
+	cQy += "	C9.C9_ITEM, " + CRLF
+	cQy += "	C9.C9_PRODUTO, " + CRLF
+	cQy += "	C9.C9_NFISCAL, " + CRLF
+	cQy += "	C9_SERIENF, " + CRLF
+	cQy += "	C9.C9_REMITO, " + CRLF
+	cQy += "	C9.C9_SERIREM, " + CRLF
+	cQy += "	CB9.CB9_ORDSEP AS TCB9_ORDSEP, " + CRLF
+	cQy += "	CB9.CB9_LOTECT, " + CRLF
+	cQy += "	CB9.CB9_NUMSER, " + CRLF
+	cQy += "	CB9.CB9_QTESEP, " + CRLF
+	cQy += "	CB9.CB9_ZB0COD, " + CRLF
+	#IFDEF ORACLE
+		cQy += "	F2.F2_CLIENTE || F2.F2_LOJA AS CLIENTE, " + CRLF
+	#ELSE
+		cQy += "	F2.F2_CLIENTE + F2.F2_LOJA AS CLIENTE, " + CRLF
+	#ENDIF
+	cQy += "	A1.A1_NOME " + CRLF
+	cQy += "FROM " + CRLF
+	cQy += "	" + retSqlName("SF2") + " F2 " + CRLF
+	cQy += "	INNER JOIN " + retSqlName("SC9") + " C9 " + CRLF
+	cQy += "	ON ( " + CRLF
+	cQy += "		( " + CRLF
+	cQy += "			F2.F2_DOC = C9.C9_NFISCAL " + CRLF
+	cQy += "			AND F2.F2_SERIE = C9.C9_SERIENF " + CRLF
+	cQy += "			AND " + fwJoinFilial("SF2", "SC9", "F2", "C9", .T., , .T.) + " " + CRLF
+	cQy += "		) " + CRLF
+	cQy += "		OR ( " + CRLF
+	cQy += "			F2.F2_DOC = C9.C9_REMITO " + CRLF
+	cQy += "			AND F2.F2_SERIE = C9.C9_SERIREM " + CRLF
+	cQy += "			AND " + fwJoinFilial("SF2", "SC9", "F2", "C9", .T., , .T.) + " " + CRLF
+	cQy += "		) " + CRLF
+	cQy += "	) " + CRLF
+	cQy += "	AND C9.D_E_L_E_T_ = '' " + CRLF
+	cQy += "	INNER JOIN " + retSqlName("CB8") + " CB8 " + CRLF
+	cQy += "	ON C9.C9_ORDSEP = CB8.CB8_ORDSEP " + CRLF
+	cQy += "	AND C9.C9_ITEM = CB8.CB8_ITEM " + CRLF
+	cQy += "	AND " + fwJoinFilial("SC9", "CB8", "C9", "CB8", .T., , .T.) + " " + CRLF
+	cQy += "	AND CB8.D_E_L_E_T_ = '' " + CRLF
+	cQy += "	INNER JOIN " + retSqlName("CB9") + " CB9 " + CRLF
+	cQy += "	ON CB8.CB8_ORDSEP = CB9.CB9_ORDSEP " + CRLF
+	cQy += "	AND CB8.CB8_ITEM = CB9.CB9_ITESEP " + CRLF
+	cQy += "	AND " + fwJoinFilial("CB8", "CB9", "CB8", "CB9", .T., , .T.) + " " + CRLF
+	cQy += "	INNER JOIN " + retSqlName("SA1") + " A1 " + CRLF
+	cQy += "	ON " + fwJoinFilial("SF2", "SA1", "F2", "A1", .T., , .T.) + " " + CRLF
+	cQy += "	AND F2.F2_CLIENTE = A1.A1_COD " + CRLF
+	cQy += "	AND F2.F2_LOJA = A1.A1_LOJA " + CRLF
+	cQy += "WHERE " + CRLF
+	cQy += "	F2_DOC = '" + cDoc + "' " + CRLF
+	cQy += "	AND F2.F2_SERIE = '" + cSerie + "' " + CRLF
+	cQy += "	AND F2.D_E_L_E_T_ = '' " + CRLF
+	cQy += "	AND F2.F2_FILIAL = '" + cFilOri + "' " + CRLF
+	cQy += "ORDER BY " + CRLF
+	cQy += "	C9.C9_ITEM "
+	cQy := ChangeQuery(cQy)
+	#IFDEF MONITORAR
+		showLog(cQy)
+	#ENDIF
+	dbUseArea(.T., "TOPCONN", TCGenQry(, , cQy), cAliasZB0, .F., .T.)
+	dbSelectArea(cAliasZB0)
+
+/*Exemplo de json
+{
+  "facturas": [
+    {
+      "filial": "01",
+      "fatura": "999999999",
+      "cliente": "666666",
+      "nome_cli": "SUENOLAR",
+      "itens": [
+        {
+          "item": "01",
+          "pedido": "666666",
+          "ordsep": "666666",
+          "cod_prod": "XXXXXX",
+          "lote": "AABV8801001",
+          "numserie": "ASP0469712",
+          "qtd": 1,
+          "tags": "ZZZZZZZZZZZZZZZ"
+        }
+      ]
+    }
+  ]
+}
+*/
+	if (cAliasZB0)->(eOF())
+		msgAlert("Não ha dados para enviar para Segel", NOME_FONTE)
+		fwRestArea(oArea) // juk tirar esse corte
+		return // juk tirar esse corte
+	endIf
+
+	(cAliasZB0)->(dbGoTop())
+	while !(cAliasZB0)->(eOF())
+		oJsonItem := JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
+		oJsonItem['item'] := (cAliasZB0)->C9_ITEM
+		oJsonItem['pedido'] := (cAliasZB0)->C9_PEDIDO
+		oJsonItem['ordsep'] := (cAliasZB0)->TCB9_ORDSEP
+		oJsonItem['cod_prod'] := (cAliasZB0)->C9_PRODUTO
+		oJsonItem['lote'] := (cAliasZB0)->CB9_LOTECT
+		oJsonItem['numserie'] := (cAliasZB0)->CB9_NUMSER
+		oJsonItem['qtd'] := (cAliasZB0)->CB9_QTESEP
+		oJsonItem['tag'] := (cAliasZB0)->CB9_ZB0COD // juk corrigir o nome na API
+		aAdd(aItens, oJsonItem)
+		(cAliasZB0)->(dbSkip())
+	endDo
+	(cAliasZB0)->(dbGoTop())
+	oJsonfat['filial'] := cFilOri
+	oJsonfat['fatura'] := cDoc
+	oJsonfat['serie'] := cSerie // juk colocar na API
+	oJsonfat['cliente'] := (cAliasZB0)->CLIENTE
+	oJsonfat['nome_cli'] := (cAliasZB0)->A1_NOME
+	oJsonfat['itens'] := aItens
+	oJsonOut['facturas'] := {oJsonfat}
+
+	cJsonOut := oJsonOut:ToJson()
+	#IFDEF MONITORAR
+		showLog(cJsonOut)
+	#ENDIF
+
+	Aadd(aHeader, "Content-Type: application/json")
+	Aadd(aHeader, "Authorization: Basic " + encode64(superGetMV("SU_USRSEGE", .T., "SuperEu") + ":" + superGetMV("SU_PSWSEGE", .T., "Teste@123")))
+	oRestClient:SetPath(cPath)
+	oRestClient:SetPostParams(cJsonOut)
+
+	if oRestClient:post(aHeader)
+		cRet += oRestClient:getResult()
+	else
+		cRet += "ERRO" + CRLF + oRestClient:getLastError() + CRLF + oRestClient:getResult()
+	endIf
+	#IFDEF MONITORAR
+		showLog(cRet)
+	#ENDIF
+
+	fwRestArea(oArea)
 return
