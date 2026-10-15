@@ -1406,9 +1406,6 @@ Ponto de entrada compilado apenas para entrar numa validação do fonte acdv166.pr
 /*/
 User Function ACD170VE()
 	local aEtiq := PARAMIXB
-	#IFDEF MONITORAR
-		showLog("Ponto de entrada compilado apenas para entrar numa validação do fonte acdv166.prg If lContinua .And. lACD170VE https://tdn.totvs.com/display/public/PROT/PE+ACD170VE+Valida+Etiqueta+do+Produto")
-	#ENDIF
 Return aEtiq
 
 /*/{Protheus.doc} OM200MNU
@@ -1614,3 +1611,14 @@ user function docToSeg(cFilOri, cDoc, cSerie) // 1.2.2.2.4.2
 
 	fwRestArea(oArea)
 return
+
+/*/{Protheus.doc} MTA265MNU
+PE para colocar botão no menu da rotina Endereçamento de produtos https://tdn.totvs.com/pages/releaseview.action?pageId=331845273
+@type user function
+@author Julio Carvalho Barberino
+@since 08/10/2026
+@version 0
+/*/
+User Function MTA265MNU()//.customização do cliente
+	aAdd(aRotina,{ "Nova Rotina", "NovaRotina", 0 , 2, 0, .F.})
+Return

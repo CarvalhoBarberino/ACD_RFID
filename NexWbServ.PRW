@@ -12,10 +12,19 @@ WSRESTFUL nexSolucoes DESCRIPTION "webService com os metodos da NEX Solucoes" //
 	WSMETHOD POST apontamento_producao DESCRIPTION "Endpoint Protheus dedicado a receber e registrar apontamentos de producao" PATH "/production_add"
 	WSMETHOD POST saida_produto DESCRIPTION "Endpoint PROTHEUS dedicado a receber faturas que passaram no portal de saída expedição." PATH "/outbound_sell"
 	WSMETHOD POST transffil_out DESCRIPTION "Protheus recebe aviso de saída de produtos com destino a outra filial. Processo disparado na filial de origem." PATH "/transf_fil/out"
+	WSMETHOD POST transffil_in DESCRIPTION "Protheus recebe aviso de entrada de produtos na filial de destino. Processo disparado na filial de destino." PATH "/transf_fil/in"
 	WSMETHOD POST chamaBlock DESCRIPTION "Endpoint para chamaBlock" PATH "/chamaBlock"
 
 END WSRESTFUL
 
+/*/{Protheus.doc} apontamento_producao
+EndPoint para Segel indicar produto produzido
+@type user function
+@author Julio Carvalho Barberino
+@since 09/07/2026
+@version 0
+@return .T.
+/*/
 WSMETHOD POST apontamento_producao WSSERVICE nexSolucoes
 	local cConteudo		:= self:getContent()
 	local oJsonReceb	:= jsonObject():new()
@@ -88,12 +97,20 @@ WSMETHOD POST apontamento_producao WSSERVICE nexSolucoes
 	self:setStatus(201)
 return .T.
 
+/*/{Protheus.doc} saida_produto
+EndPoint para Segel indicar saida de produto vendido
+@type user function
+@author Julio Carvalho Barberino
+@since 28/09/2026
+@version 0
+@return .T.
+/*/
 WSMETHOD POST saida_produto WSSERVICE nexSolucoes // 1.2.2.2.4.2
 	local cConteudo		:= self:getContent()
 	local oJsonIn		:= jsonObject():new()
 	local cErroJson		:= oJsonIn:fromJson(cConteudo) // Variavel que indica se houve erro na interpretacao do json
 	local oJsonOut		:= jsonObject():new() // Json de resposta
-	local nFat, cFilia, cFatura, cFatSerie, cCliente, cProduto, cItem, cTag
+	local nFat, cFilia, cFatura, cFatSerie, cCliente, cProduto, cItem, cTag, nItem
 
 /* Exemplo de json que espera receber
 {
@@ -140,19 +157,30 @@ WSMETHOD POST saida_produto WSSERVICE nexSolucoes // 1.2.2.2.4.2
 	next nFat
 return .T.
 
-WSMETHOD POST transffil_out WSSERVICE nexSolucoes
+/*/{Protheus.doc} transffil_out
+EndPoint para Segel avisar transferencia de produtos entre filiais (saída)
+@type user function
+@author Julio Carvalho Barberino
+@since 08/10/2026
+@version 0
+@return .T.
+/*/
+WSMETHOD POST transffil_out WSSERVICE nexSolucoes // 1.2.2.2.5.1
 	local cConteudo		:= self:getContent()
 	local oJsonIn		:= jsonObject():new()
 	local cErroJson		:= oJsonIn:fromJson(cConteudo) // Variavel que indica se houve erro na interpretacao do json
 	local oJsonOut		:= jsonObject():new() // Json de resposta
-	local cFilOri		:= oJsonIn['FilOrig']
 	local cFilDest		:= oJsonIn['FilDest']
+	local cSeriRem		:= "RL "
+	local cRem			:= Posicione("SX5", 1, xFilial('SX5') + '01' + cSeriRem, "X5_DESCSPA" )
+	local aCab			:= {}
 	local aItens		:= {}
-	local aItem, nI
+	local aItem, nI, cCliente, cLojaCli, cRet, cCodFor, cLojFor
+	private lMsErroAuto	:= .F.
+
 /* Exemplo de json que espera receber
 {
   "OrdemSaidaNum:": "000154",
-  "FilOrig": "01",
   "FilDest": "02",
   "Itens": [
     {
@@ -174,14 +202,192 @@ WSMETHOD POST transffil_out WSSERVICE nexSolucoes
   ]
 }
 */
-for nI := 1 to len(oJsonIn['Itens'])
-	aItem := {oJsonIn['CodProd'], oJsonIn['Qtd'], oJsonIn['Local'], oJsonIn['Lote'], oJsonIn['SerialNumber'], oJsonIn['Endereco']}
-	aAdd(aItens, aItem)
-next nI
 
-	
+	dbSelectArea('SX5')
+	dbSetOrder(1)
+	SX5->(dbGoTop())
+	if !SX5->(msSeek(cFilAnt + "75" + cFilAnt + cEmpAnt + cFilDest)) // https://centraldeatendimento.totvs.com/hc/pt-br/articles/4410465974167-Cross-Segmento-TOTVS-Backoffice-Linha-Protheus-ADVPL-Abertura-de-ambiente-em-Web-Service https://terminaldeinformacao.com/2025/08/25/como-definir-empresa-e-filial-numa-requisicao-em-rest/ https://centraldeatendimento.totvs.com/hc/es/articles/360007255512-Cross-Segmentos-TOTVS-BackOffice-L%C3%ADnea-Protheus-MI-Stock-y-Costos-SIGAEST-C%C3%B3mo-eliminar-v%C3%ADnculo-entre-Proveedores-vs-Sucursales-del-Sistema
+		self:setResponse(ENCODEUTF8("Relacionamento não encontrado na SX5 tabela 75 não encontrado"))
+		self:setStatus(404)
+		return .T.
+	endIf
+
+	cCodFor := subStr(SX5->X5_DESCSPA, 1 /*posicao inicial*/, 15 /*opcional quantidade de caracteres*/)
+	cLojFor := subStr(SX5->X5_DESCSPA, 16 /*posicao inicial*/, 2 /*opcional quantidade de caracteres*/)
+
+	dbSelectArea('SA2')
+	dbSetOrder(1)
+	SA2->(dbGoTop())
+	if !SA2->(msSeek(xFilial('SA2') + cCodFor + cLojFor))
+		self:setResponse(ENCODEUTF8("Fornecedor não encontrado na SA2"))
+		self:setStatus(404)
+		return .T.
+	endIf
+
+	aAdd(aCab,{"F2_FILIAL",			xFilial("SF2"),		Nil})
+	aAdd(aCab,{"F2_FILDEST",		cFilDest,			Nil})
+	aAdd(aCab,{"F2_CLIENTE",		SA2->A2_COD,		Nil})
+	aAdd(aCab,{"F2_LOJA",			SA2->A2_LOJA,		Nil})
+	aAdd(aCab,{"F2_EMISSAO",		dDataBase,			Nil})
+	aAdd(aCab,{"F2_SERIE",			cSeriRem,			Nil})
+	aAdd(aCab,{"F2_DOC",			cRem,				Nil})
+	aAdd(aCab,{"F2_EST",			SA2->A2_EST,		Nil})
+	aAdd(aCab,{"F2_TIPO",			"B",				Nil})
+	aAdd(aCab,{"F2_ESPECIE",		"RTS",				Nil})
+	aAdd(aCab,{"F2_PREFIXO",		"R ",				Nil})
+	aAdd(aCab,{"F2_MOEDA",			1,					Nil})
+	aAdd(aCab,{"F2_TXMOEDA",		1,					Nil})
+	//aAdd(aCab,{"F2_FORMUL",			"S",				Nil})
+	aAdd(aCab,{"F2_TIPODOC",		"54",				Nil})
+	aAdd(aCab,{"F2_TIPOREM",		"6",				Nil})
+	aAdd(aCab,{"F2_TIPORET",		"2",				Nil})
+	//aAdd(aCab,{"F2_VEICULO",		"ABC-1234",			Nil})
+	//aAdd(aCab,{"F2_NUMTIM",		"15721935",			Nil})
+	//aAdd(aCab,{"F2_SERIE2",		"RL",				Nil})
+	aCab := FWVetByDic(aCab, "SF2")	
+
+	for nI := 1 to len(oJsonIn['Itens'])
+		aItem:= {}
+		aAdd(aItem,{"D2_COD",			oJsonIn['Itens'][nI]['CodProd'],		Nil})
+		aAdd(aItem,{"D2_QUANT",			oJsonIn['Itens'][nI]['Qtd'],			Nil})
+		//aAdd(aItem,{"D2_PRCVEN",		38471.36,								Nil})
+		//aAdd(aItem,{"D2_TOTAL",			38471.36,								Nil})
+		//aAdd(aItem,{"D2_CUSTO1",		38471.36,								Nil})
+		//aAdd(aItem,{"D2_TES",			"510",									Nil})
+		//aAdd(aItem,{"D2_TESENT",		"013",									Nil})
+		//aAdd(aItem,{"D2_UM",			posicione("SB1", 1, fwXFilial("SB1") + oJsonIn['Itens'][nI]['CodProd'], "B1_UM"),	Nil})
+		aAdd(aItem,{"D2_ESPECIE",		"RTS",				Nil})
+		aAdd(aItem,{"D2_LOCALIZ",		oJsonIn['Itens'][nI]['Endereco'],		Nil})
+		aAdd(aItem,{"D2_LOCAL",			oJsonIn['Itens'][nI]['Local'],			Nil})
+		aAdd(aItem,{"D2_NUMSERI",		oJsonIn['Itens'][nI]['SerialNumber'],	Nil})
+		aAdd(aItem,{"D2_LOTECTL",		oJsonIn['Itens'][nI]['Lote'],			Nil})
+		aItem := FWVetByDic(aItem, "SD2")	
+
+		aAdd(aItens, aItem)
+	next nI
+
+	MSExecAuto( {|x,y,z| Mata462n(x,y,z) }, aCab, aItens, 3)
+	if lMsErroAuto
+		self:setResponse(ENCODEUTF8(MostraErro("MostraErro.txt")))
+		self:setStatus(406)
+	else
+		self:setResponse(ENCODEUTF8("Gravou Ok" + CRLF + "Doc: " + cRem + CRLF + "Serie: " + cSeriRem))
+		self:setStatus(201)
+	EndIf
 return .T.
 
+/*/{Protheus.doc} transffil_in
+EndPoint para Segel avisar transferencia de produtos entre filiais (entrada)
+@type user function
+@author Julio Carvalho Barberino
+@since 14/10/2026
+@version 0
+@return .T.
+/*/
+WSMETHOD POST transffil_in WSSERVICE nexSolucoes
+	local cConteudo		:= self:getContent()
+	local oJsonIn		:= jsonObject():new()
+	local cErroJson		:= oJsonIn:fromJson(cConteudo) // Variavel que indica se houve erro na interpretacao do json
+	local oJsonOut		:= jsonObject():new() // Json de resposta
+	local cFilOri		:= iif(!empty(xFilial('SF2')), padR(oJsonIn['FilOrig'], tamSX3("F2_FILIAL")[1]), padR("  ", tamSX3("F2_FILIAL")[1]))
+	local cDoc			:= padR(oJsonIn['Fatura'], tamSX3("F2_DOC")[1])
+	local cDocSeri		:= padR(oJsonIn['FaturaSerie'], tamSX3("F2_SERIE")[1])
+	local aCab			:= {}
+	local aItens		:= {}
+	local aItem, nI
+	private lMsErroAuto	:= .F.
+/* Exemplo de json que espera receber
+{
+  "Fatura": "000258",
+  "FaturaSerie": "RL"
+  "FilOrig": "01",
+  "FilDest": "02",
+  "Itens": [
+    {
+      "CodProd": "000495",
+      "Qtd": 10,
+      "SerialNumber": "000632"
+    },
+    {
+      "CodProd": "000496",
+      "Qtd": 20,
+      "SerialNumber": "000633"
+    },
+    {
+      "CodProd": "000497",
+      "Qtd": 30,
+      "SerialNumber": "000634"
+    }
+  ]
+}
+*/
+
+aAdd(aXCabec,{"F1_FILIAL"   , xFilial("SF1")    , Nil})
+	aAdd(aXCabec,{"F1_TIPO"		, "N"				, Nil})
+	aAdd(aXCabec,{"F1_FORMUL"   , "N" 				, Nil})
+	aAdd(aXCabec,{"F1_DOC"		, SF2->F2_DOC		, Nil})
+	aAdd(aXCabec,{"F1_SERIE"	, SF2->F2_SERIE		, Nil})
+	aAdd(aXCabec,{"F1_EMISSAO"	, SF2->F2_EMISSAO   , Nil})
+	aAdd(aXCabec,{"F1_FORNECE"	, SF2->F2_CLIENTE  	, Nil})
+	aAdd(aXCabec,{"F1_LOJA"		, "01" /*SF2->F2_LOJA*/ 		, Nil})
+	aAdd(aXCabec,{"F1_TIPODOC"	, "64"				, Nil})
+	aAdd(aXCabec,{"F1_ESPECIE"	, "RTE"				, Nil})
+	aAdd(aXCabec,{"F1_EST"	   	, SF2->F2_EST		, Nil})
+	aAdd(aXCabec,{"F1_COND"		, SF2->F2_COND		, Nil})
+	aAdd(aXCabec,{"F1_FILORIG"	, SF2->F2_FILIAL	, Nil})
+	aAdd(aXCabec,{"F1_SERORIG"	, SF2->F2_SERIE		, Nil})
+	aAdd(aXCabec,{"F1_NFORIG"	, SF2->F2_DOC		, Nil})
+	aAdd(aXCabec,{"F1_MOEDA"	, SF2->F2_MOEDA		, Nil})
+	aAdd(aXCabec,{"F1_TXMOEDA"	, SF2->F2_TXMOEDA	, Nil})
+	aXCabec := FWVetByDic( aXCabec, "SF1" )
+
+	aItem:= {}
+	aadd(aItem, {"D1_COD"    , SD2->D2_COD        , Nil})
+	aadd(aItem, {"D1_QUANT"  , SD2->D2_QUANT      , Nil})
+	aadd(aItem, {"D1_VUNIT"  , SD2->D2_PRCVEN     , Nil})
+	aadd(aItem, {"D1_TOTAL"  , SD2->D2_TOTAL      , Nil})
+	aadd(aItem, {"D1_TES"    , "013" /*SD2->D2_TESENT*/     , Nil})
+	aadd(aItem, {"D1_UM"     , SD2->D2_UM         , Nil})
+	aAdd(aItem, {"D1_TIPODOC", "64"				  , Nil})
+	aadd(aItem, {"D1_ESPECIE", "RTE"		      , Nil})
+	aadd(aItem, {"D1_LOCAL"  , "01" /*juk pode vir de SD2->D2_LOCDEST mas como vai ser quando não tiver saldo inicial?*/    , Nil})
+	aadd(aItem, {"D1_NFORI"  , SD2->D2_DOC        , Nil})
+	aadd(aItem, {"D1_SERIORI", SD2->D2_SERIE      , Nil})
+	aadd(aItem, {"D1_ITEMORI", SD2->D2_ITEM       , Nil})
+	aadd(aItem, {"D1_CUSTO"  , SD2->D2_CUSTO1     , Nil})
+	aadd(aItem, {"D1_CUSTO2" , SD2->D2_CUSTO2     , Nil})
+	aadd(aItem, {"D1_LOTECTL" , SD2->D2_LOTECTL     , Nil})
+	aadd(aItem, {"D1_DTVALID" , SD2->D2_DTVALID     , Nil})
+	aadd(aItem, {"D1_NUMSERI" , SD2->D2_NUMSERI     , Nil})
+	aadd(aItem, {"D1_LOCAL" , "P1"    , Nil})
+
+
+	aItem := FWVetByDic( aItem, "SD1" )
+	aadd(aXtems,aItem)
+
+
+	
+
+	MSExecAuto({|v,w,x,y,z| LOCXNF(v,w,x,y,z)},64,aXCabec,aXtems,3,"MATA462TN")
+	if lMsErroAuto
+		self:setResponse(ENCODEUTF8(MostraErro("MostraErro.txt")))
+		self:setStatus(406)
+	else
+		self:setResponse(ENCODEUTF8("Gravou Ok" + CRLF + "Doc: " + cRem + CRLF + "Serie: " + cSeriRem))
+		self:setStatus(201)
+	EndIf
+
+
+return .T.
+
+/*/{Protheus.doc} chamaBlock
+EndPoint para teste, envio de comandos via REST
+@type user function
+@author Julio Carvalho Barberino
+@since 25/08/2026
+@version 0
+@return .T.
+/*/
 WSMETHOD POST chamaBlock WSSERVICE nexSolucoes
 	local bBlock
 	local aParams
