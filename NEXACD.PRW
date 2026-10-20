@@ -38,6 +38,7 @@ user function aptProd(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cS
 		{"D3_DOC",			cOp,								NIL},;
 		{"D3_ZB0COD",		cTags,								NIL};
 		}
+		//juk verificar se pode colocar o campo D3_PARCTOT
 
 	lMsErroAuto		:= .F.
 	MSExecAuto({|x, y| mata250(x, y)}, aVetor, nOpc)
@@ -257,9 +258,13 @@ Ponto de entrada chamado quando faz leitura do codigo de barras no coletor https
 @return aRet, Espera devolver aRet = {"Código do Produto","Quantidade(Embalagem normalmente analisado na nQE := SB1->B1_QE no processo padrão)","Lote","Data de Validade","Número de Série","Endereço Destino"}
 /*/
 user function CBRETEAN()
-	local cId				:= padR(paramIXB[1], tamSX3("ZB0_CODETI")[1])
+	local cId				:= paramIXB[1]
 	local aRet				:= {}
 	local cQy				:= ""
+
+	#IFDEF MONITORAR
+		conOut("PE CBRETEAN")
+	#ENDIF
 
 	#IFDEF ORACLE
 		cQy += "SELECT " + CRLF
@@ -277,6 +282,9 @@ user function CBRETEAN()
 	cQy += "	ZB0_CODETI = '" + cId + "' " + CRLF
 	#IFDEF ORACLE
 		cQy += "FETCH FIRST 1 ROW ONLY " + CRLF
+	#ENDIF
+	#IFDEF MONITORAR
+		conOut(cQy)
 	#ENDIF
 	if (select("TMPNEXACD")) > 0
 		dbSelectArea("TMPNEXACD")
@@ -1165,7 +1173,7 @@ user function DrvToOMS(cAliasTemp)
 	local cItem
 	local cSeq
 	local cProd
-	local cCliente
+	//local cCliente
 	local aCab, aItem
 	Private lMsHelpAuto
 	Private lMsErroAuto
@@ -1340,8 +1348,8 @@ Ponto de entrada para alterar a query que indica quais registros da C9 serão mos
 /*/
 user function OM200QRY()
 	local cQuery		:= PARAMIXB[1] //Query para a manutenção
-	local aArrayTipo	:= PARAMIXB[2] //Tipos de carga selecionados
-	local aArrayMod		:= PARAMIXB[3] //Modelos de carga
+	//local aArrayTipo	:= PARAMIXB[2] //Tipos de carga selecionados
+	//local aArrayMod		:= PARAMIXB[3] //Modelos de carga
 	local nQuery		:= PARAMIXB[4] //Número da query no UNION (1,2)
 
 	if nQuery == 2 .and. FWIsInCallStack("U_rotaDrvDt")

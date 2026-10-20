@@ -109,17 +109,18 @@ WSMETHOD POST saida_produto WSSERVICE nexSolucoes // 1.2.2.2.4.2
 	local cConteudo		:= self:getContent()
 	local oJsonIn		:= jsonObject():new()
 	local cErroJson		:= oJsonIn:fromJson(cConteudo) // Variavel que indica se houve erro na interpretacao do json
-	local oJsonOut		:= jsonObject():new() // Json de resposta
-	local nFat, cFilia, cFatura, cFatSerie, cCliente, cProduto, cItem, cTag, nItem
+	//local oJsonOut		:= jsonObject():new() // Json de resposta
+	local nFat, cFatura, cFatSerie, cCliente, cLoja, cProduto, cItem, cTag, nItem
+	local cRet			:= "Tags gravadas na tabela SD2:" + CRLF
 
 /* Exemplo de json que espera receber
 {
   "facturas": [
     {
-      "filial": "01",
       "fatura": "0300010035585",
       "fat_serie": "S1",
-      "cliente": "1234567890001",
+      "cliente": "123456789",
+	  "loja": "0001",
       "itens": [
         {
           "item": "1",
@@ -136,25 +137,37 @@ WSMETHOD POST saida_produto WSSERVICE nexSolucoes // 1.2.2.2.4.2
   ]
 }
 */
+
+	if !empty(cErroJson)
+		cRet := "Erro na interpretacao do json." + CRLF + cErroJson
+		self:setResponse(ENCODEUTF8(cRet))
+		self:setStatus(404)
+		return .T.
+	endIf
+
 	dbSelectArea("SD2")
 	SD2->(dbSetOrder(3)) // D2_FILIAL+D2_DOC+D2_SERIE+D2_CLIENTE+D2_LOJA+D2_COD+D2_ITEM
 	for nFat := 1 to len(oJsonIn['facturas'])
-		cFilia := oJsonIn['facturas'][nFat]['filial']
-		cFatura := oJsonIn['facturas'][nFat]['fatura']
-		cFatSerie := oJsonIn['facturas'][nFat]['fat_serie']
-		cCliente := oJsonIn['facturas'][nFat]['cliente']
+		cFatura := padR(oJsonIn['facturas'][nFat]['fatura'], tamSX3("D2_DOC")[1])
+		cFatSerie := padR(oJsonIn['facturas'][nFat]['fat_serie'], tamSX3("D2_SERIE")[1])
+		cCliente := padR(oJsonIn['facturas'][nFat]['cliente'], tamSX3("D2_CLIENTE")[1])
+		cLoja := padR(oJsonIn['facturas'][nFat]['loja'], tamSX3("D2_LOJA")[1])
 		for nItem := 1 to len(oJsonIn['facturas'][nFat]['itens'])
-			cProduto := oJsonIn['facturas'][nFat]['itens'][nItem]['cod_prod']
-			cItem := oJsonIn['facturas'][nFat]['itens'][nItem]['item']
+			cProduto := padR(oJsonIn['facturas'][nFat]['itens'][nItem]['cod_prod'], tamSX3("D2_COD")[1])
+			cItem := padR(oJsonIn['facturas'][nFat]['itens'][nItem]['item'], tamSX3("D2_ITEM")[1])
 			cTag := oJsonIn['facturas'][nFat]['itens'][nItem]['tag']
 			SD2->(dbGoTop())
-			if SD2->(msSeek(cFilia + cFatura + cFatSerie + cCliente + cProduto + cItem))
+			if SD2->(msSeek(fwXFilial("SD2") + cFatura + cFatSerie + cCliente + cLoja + cProduto + cItem))
 				recLock("SD2", .F.)
 				SD2->D2_ZB0COD := cTag
 				SD2->(msUnLock())
+				cRet += cTag + CRLF
 			endIf
 		next nItem
 	next nFat
+
+	self:setResponse(ENCODEUTF8(cRet))
+	self:setStatus(201)
 return .T.
 
 /*/{Protheus.doc} OutTraFil
@@ -169,23 +182,25 @@ WSMETHOD POST OutTraFil WSSERVICE nexSolucoes // 1.2.2.2.5.1
 	local cConteudo		:= self:getContent()
 	local oJsonIn		:= jsonObject():new()
 	local cErroJson		:= oJsonIn:fromJson(cConteudo) // Variavel que indica se houve erro na interpretacao do json
-	//local oJsonOut		:= jsonObject():new() // Json de resposta
+	local oJsonOut		:= jsonObject():new() // Json de resposta
+	local oJsonAux
 	local cFilDest		:= oJsonIn['FilDest']
 	local cSeriRem		:= "RL "
-	local cRem			:= Posicione("SX5", 1, xFilial('SX5') + '01' + cSeriRem, "X5_DESCSPA" )
+	local cRem			:= padR(Posicione("SX5", 1, xFilial('SX5') + '01' + cSeriRem, "X5_DESCSPA" ), tamSX3("F2_DOC")[1])
 	local aCab			:= {}
 	local aItens		:= {}
+	local aRetItens		:= {}
 	local aItem, nI, cRet, cCodFor, cLojFor
 	private lMsErroAuto	:= .F.
 
 /* Exemplo de json que espera receber
 {
-  "OrdemSaidaNum:": "000154",
+  "OrdemSaidaNum": "000154",
   "FilDest": "02",
   "Itens": [
     {
       "CodProd": "0001546",
-      "Qtd": 45,
+      "Qtd": 10,
       "Local": "01",
       "Lote": "001546",
       "SerialNumber": "0004687",
@@ -213,7 +228,7 @@ WSMETHOD POST OutTraFil WSSERVICE nexSolucoes // 1.2.2.2.5.1
 	dbSetOrder(1)
 	SX5->(dbGoTop())
 	if !SX5->(msSeek(cFilAnt + "75" + cFilAnt + cEmpAnt + cFilDest)) // https://centraldeatendimento.totvs.com/hc/pt-br/articles/4410465974167-Cross-Segmento-TOTVS-Backoffice-Linha-Protheus-ADVPL-Abertura-de-ambiente-em-Web-Service https://terminaldeinformacao.com/2025/08/25/como-definir-empresa-e-filial-numa-requisicao-em-rest/ https://centraldeatendimento.totvs.com/hc/es/articles/360007255512-Cross-Segmentos-TOTVS-BackOffice-L%C3%ADnea-Protheus-MI-Stock-y-Costos-SIGAEST-C%C3%B3mo-eliminar-v%C3%ADnculo-entre-Proveedores-vs-Sucursales-del-Sistema
-		self:setResponse(ENCODEUTF8("Relacionamento não encontrado na SX5 tabela 75 não encontrado"))
+		self:setResponse(ENCODEUTF8("Relacionamento não encontrado na SX5 tabela 75 não encontrado."))
 		self:setStatus(404)
 		return .T.
 	endIf
@@ -225,7 +240,7 @@ WSMETHOD POST OutTraFil WSSERVICE nexSolucoes // 1.2.2.2.5.1
 	dbSetOrder(1)
 	SA2->(dbGoTop())
 	if !SA2->(msSeek(xFilial('SA2') + cCodFor + cLojFor))
-		self:setResponse(ENCODEUTF8("Fornecedor não encontrado na SA2"))
+		self:setResponse(ENCODEUTF8("Fornecedor não encontrado na SA2."))
 		self:setStatus(404)
 		return .T.
 	endIf
@@ -253,13 +268,18 @@ WSMETHOD POST OutTraFil WSSERVICE nexSolucoes // 1.2.2.2.5.1
 	aCab := FWVetByDic(aCab, "SF2")
 
 	for nI := 1 to len(oJsonIn['Itens'])
+		if oJsonIn['Itens'][nI]['Qtd'] != 1 .and. valType(oJsonIn['Itens'][nI]['SerialNumber']) == "C"
+			self:setResponse(ENCODEUTF8("Item " + str(nI) + " controla numero de serie e tem quantidade maior que 1."))
+			self:setStatus(400)
+			return .T.
+		endIf
 		aItem:= {}
 		aAdd(aItem,{"D2_COD",			oJsonIn['Itens'][nI]['CodProd'],		Nil})
 		aAdd(aItem,{"D2_QUANT",			oJsonIn['Itens'][nI]['Qtd'],			Nil})
 		//aAdd(aItem,{"D2_PRCVEN",		38471.36,								Nil})
 		//aAdd(aItem,{"D2_TOTAL",			38471.36,								Nil})
 		//aAdd(aItem,{"D2_CUSTO1",		38471.36,								Nil})
-		//aAdd(aItem,{"D2_TES",			"510",									Nil})
+		aAdd(aItem,{"D2_TES",			superGetMV("SU_TRFILOU", .T., ""),		Nil})
 		//aAdd(aItem,{"D2_TESENT",		"013",									Nil})
 		//aAdd(aItem,{"D2_UM",			posicione("SB1", 1, fwXFilial("SB1") + oJsonIn['Itens'][nI]['CodProd'], "B1_UM"),	Nil})
 		aAdd(aItem,{"D2_ESPECIE",		"RTS",				Nil})
@@ -277,11 +297,83 @@ WSMETHOD POST OutTraFil WSSERVICE nexSolucoes // 1.2.2.2.5.1
 		cRet := MostraErro("MostraErro.txt")
 		self:setResponse(ENCODEUTF8(cRet))
 		self:setStatus(406)
-	else
-		cRet := "Gravou Ok" + CRLF + "Filial: " + fwXFilial("SF2") + "Doc: " + cRem + CRLF + "Serie: " + cSeriRem
-		self:setResponse(ENCODEUTF8(cRet))
-		self:setStatus(201)
 	EndIf
+
+	dbSelectArea('SF2')
+	dbSetOrder(1) // F2_FILIAL+F2_DOC+F2_SERIE+F2_CLIENTE+F2_LOJA+F2_FORMUL+F2_TIPO '1920010000877                                          '
+	SF2->(dbGoTop())
+	if !SF2->(msSeek(fwXFilial("SF2") + cRem + cSeriRem + cCodFor + cLojFor + "S" + "B"))
+		self:setResponse(ENCODEUTF8("Documento não gravado na SF2" + CRLF + "Filial: " + fwXFilial("SF2") + CRLF + "Doc: " + cRem + CRLF + "Serie: " + cSeriRem + CRLF + "Cliente: " + cCodFor + CRLF + "Loja: " + cLojFor))
+		self:setStatus(404)
+		return .T.
+	endIf
+
+	oJsonOut['OrdemSaidaNum'] := oJsonIn['OrdemSaidaNum']
+	oJsonOut['FilOrig'] := cFilAnt
+	oJsonOut['FilDest'] := oJsonIn['FilDest']
+	oJsonOut['fatura'] := allTrim(SF2->F2_DOC)
+	oJsonOut['serieFat'] := allTrim(SF2->F2_SERIE)
+	oJsonOut['Cliente'] := allTrim(SA2->A2_COD)
+	oJsonOut['Loja'] := allTrim(SA2->A2_LOJA)
+
+	dbSelectArea('SD2')
+	dbSetOrder(3) // D2_FILIAL+D2_DOC+D2_SERIE+D2_CLIENTE+D2_LOJA+D2_COD+D2_ITEM
+	SD2->(dbGoTop())
+	if !SD2->(msSeek(fwXFilial("SD2") + cRem + cSeriRem + cCodFor + cLojFor))
+		self:setResponse(ENCODEUTF8("Documento não gravado na SD2" + CRLF + "Filial: " + fwXFilial("SF2") + CRLF + "Doc: " + cRem + CRLF + "Serie: " + cSeriRem + CRLF + "Cliente: " + cCodFor + CRLF + "Loja: " + cLojFor))
+		self:setStatus(404)
+		return .T.
+	endIf
+
+	while SD2->D2_FILIAL == fwXFilial("SD2") .and. SD2->D2_DOC == SF2->F2_DOC .and. SD2->D2_SERIE == SF2->F2_SERIE .and. SD2->D2_CLIENTE == SA2->A2_COD .and. SD2->D2_LOJA == SA2->A2_LOJA
+		oJsonAux := jsonObject():new()
+		oJsonAux['item']			:= SD2->D2_ITEM
+		oJsonAux['CodProd']			:= SD2->D2_COD
+		oJsonAux['Qtd']				:= SD2->D2_QUANT
+		oJsonAux['Local']			:= SD2->D2_LOCAL
+		oJsonAux['Lote']			:= SD2->D2_LOTECTL
+		oJsonAux['SerialNumber']	:= SD2->D2_NUMSERI
+		oJsonAux['Endereco']		:= SD2->D2_LOCALIZ
+
+		aAdd(aRetItens, oJsonAux)
+		SD2->(dbSkip())
+	endDo
+	oJsonOut['Itens'] := aRetItens
+
+	cRet := oJsonOut:toJson()
+	self:setResponse(ENCODEUTF8(cRet))
+	self:setStatus(201)
+/* Exemplo de json que espera retornar
+{
+	"OrdemSaidaNum:": "000154",
+	"FilOrig": "01",
+	"FilDest": "02",
+	"fatura": "",
+	"serieFat": "",
+	"Cliente": "",
+	"Loja": "",
+	"Itens": [
+    {
+		"item": "01",
+		"CodProd": "0001546",
+		"Qtd": 45,
+		"Local": "01",
+		"Lote": "001546",
+		"SerialNumber": "0004687",
+		"Endereco": "0048765"
+    },
+    {
+		"item": "02",
+		"CodProd": "0001616",
+		"Qtd": 95,
+		"Local": "01",
+		"Lote": "001547",
+		"SerialNumber": "0004688",
+		"Endereco": "0048740"
+    }
+  ]
+}
+*/
 return .T.
 
 /*/{Protheus.doc} InTraFil
@@ -298,32 +390,40 @@ WSMETHOD POST InTraFil WSSERVICE nexSolucoes
 	local cErroJson		:= oJsonIn:fromJson(cConteudo) // Variavel que indica se houve erro na interpretacao do json
 	//local oJsonOut		:= jsonObject():new() // Json de resposta
 	local cFilOri		:= iif(!empty(xFilial('SF2')), padR(oJsonIn['FilOrig'], tamSX3("F2_FILIAL")[1]), padR("", tamSX3("F2_FILIAL")[1]))
-	local cDoc			:= padR(oJsonIn['Fatura'], tamSX3("F2_DOC")[1])
-	local cDocSeri		:= padR(oJsonIn['FaturaSerie'], tamSX3("F2_SERIE")[1])
+	local cDoc			:= padR(oJsonIn['fatura'], tamSX3("F2_DOC")[1])
+	local cDocSeri		:= padR(oJsonIn['serieFat'], tamSX3("F2_SERIE")[1])
+	local cCliente		:= padR(oJsonIn['cliente'], tamSX3("F2_CLIENTE")[1])
+	local cLoja			:= padR(oJsonIn['loja'], tamSX3("F2_LOJA")[1])
 	local aCab			:= {}
 	local aItens		:= {}
 	local aItem, cRet
 	private lMsErroAuto	:= .F.
 /* Exemplo de json que espera receber
 {
-  "Fatura": "000258",
-  "FaturaSerie": "RL"
-  "FilOrig": "01",
-  "Itens": [
+	"OrdemSaidaNum:": "000154",
+	"FilOrig": "01",
+	"fatura": "",
+	"serieFat": "",
+	"cliente": "",
+	"loja": "",
+	"Itens": [
     {
-      "CodProd": "000495",
-      "Qtd": 10,
-      "SerialNumber": "000632"
+		"item": "01",
+		"CodProd": "0001546",
+		"Qtd": 45,
+		"Local": "01",
+		"Lote": "001546",
+		"SerialNumber": "0004687",
+		"Endereco": "0048765"
     },
     {
-      "CodProd": "000496",
-      "Qtd": 20,
-      "SerialNumber": "000633"
-    },
-    {
-      "CodProd": "000497",
-      "Qtd": 30,
-      "SerialNumber": "000634"
+		"item": "02",
+		"CodProd": "0001616",
+		"Qtd": 95,
+		"Local": "01",
+		"Lote": "001547",
+		"SerialNumber": "0004688",
+		"Endereco": "0048740"
     }
   ]
 }
@@ -338,8 +438,13 @@ WSMETHOD POST InTraFil WSSERVICE nexSolucoes
 	dbSelectArea('SF2')
 	dbSetOrder(1) // F2_FILIAL+F2_DOC+F2_SERIE+F2_CLIENTE+F2_LOJA+F2_FORMUL+F2_TIPO
 	SF2->(dbGoTop())
-	if !SF2->(msSeek(cFilOri + cDoc + cDocSeri))
-		self:setResponse(ENCODEUTF8("Documento não encontrado na SF2" + CRLF + "Filial: " + cFilOri + " Doc: " + cDoc + "Serie: " + cDocSeri))
+	if !SF2->(msSeek(cFilOri + cDoc + cDocSeri + cCliente + cLoja))
+		self:setResponse(ENCODEUTF8("Documento não encontrado na SF2" + CRLF + ;
+			"Filial: " + cFilOri + CRLF + ;
+			"Doc: " + cDoc + CRLF + ;
+			"Serie: " + cDocSeri + CRLF + ;
+			"Cliente: " + cCliente + CRLF + ;
+			"Loja: " + cLoja))
 		self:setStatus(404)
 		return .T.
 	endIf
@@ -347,51 +452,56 @@ WSMETHOD POST InTraFil WSSERVICE nexSolucoes
 	aAdd(aCab,{"F1_FILIAL",		xFilial("SF1"),			Nil})
 	aAdd(aCab,{"F1_TIPO",		"N",					Nil})
 	aAdd(aCab,{"F1_FORMUL",		"N" ,					Nil})
-	aAdd(aCab,{"F1_DOC",			SF2->F2_DOC,			Nil})
+	aAdd(aCab,{"F1_DOC",		SF2->F2_DOC,			Nil})
 	aAdd(aCab,{"F1_SERIE",		SF2->F2_SERIE,			Nil})
-	aAdd(aCab,{"F1_EMISSAO",		SF2->F2_EMISSAO,		Nil})
-	aAdd(aCab,{"F1_FORNECE",		SF2->F2_CLIENTE,		Nil})
+	aAdd(aCab,{"F1_EMISSAO",	SF2->F2_EMISSAO,		Nil})
+	aAdd(aCab,{"F1_FORNECE",	SF2->F2_CLIENTE,		Nil})
 	aAdd(aCab,{"F1_LOJA",		"01" /*SF2->F2_LOJA*/,	Nil})
-	aAdd(aCab,{"F1_TIPODOC",		"64",					Nil})
-	aAdd(aCab,{"F1_ESPECIE",		"RTE",					Nil})
-	aAdd(aCab,{"F1_EST",			SF2->F2_EST,			Nil})
+	aAdd(aCab,{"F1_TIPODOC",	"64",					Nil})
+	aAdd(aCab,{"F1_ESPECIE",	"RTE",					Nil})
+	aAdd(aCab,{"F1_EST",		SF2->F2_EST,			Nil})
 	aAdd(aCab,{"F1_COND",		SF2->F2_COND,			Nil})
-	aAdd(aCab,{"F1_FILORIG",		SF2->F2_FILIAL,			Nil})
-	aAdd(aCab,{"F1_SERORIG",		SF2->F2_SERIE,			Nil})
+	aAdd(aCab,{"F1_FILORIG",	SF2->F2_FILIAL,			Nil})
+	aAdd(aCab,{"F1_SERORIG",	SF2->F2_SERIE,			Nil})
 	aAdd(aCab,{"F1_NFORIG",		SF2->F2_DOC,			Nil})
 	aAdd(aCab,{"F1_MOEDA",		SF2->F2_MOEDA,			Nil})
-	aAdd(aCab,{"F1_TXMOEDA",		SF2->F2_TXMOEDA,		Nil})
+	aAdd(aCab,{"F1_TXMOEDA",	SF2->F2_TXMOEDA,		Nil})
 	aCab := FWVetByDic( aCab,"SF1" )
 
 	dbSelectArea('SD2')
 	dbSetOrder(3) // D2_FILIAL+D2_DOC+D2_SERIE+D2_CLIENTE+D2_LOJA+D2_COD+D2_ITEM
 	SD2->(dbGoTop())
-	if !SD2->(msSeek(cFilOri + cDoc + cDocSeri))
-		self:setResponse(ENCODEUTF8("Documento não encontrado na SD2" + CRLF + "Filial: " + cFilOri + " Doc: " + cDoc + "Serie: " + cDocSeri))
+	if !SD2->(msSeek(cFilOri + cDoc + cDocSeri + cCliente + cLoja))
+		self:setResponse(ENCODEUTF8("Documento não encontrado na SD2" + CRLF + ;
+			"Filial: " + cFilOri + CRLF + ;
+			"Doc: " + cDoc + CRLF + ;
+			"Serie: " + cDocSeri + CRLF + ;
+			"Cliente: " + cCliente + CRLF + ;
+			"Loja: " + cLoja))
 		self:setStatus(404)
 		return .T.
 	endIf
 
 	while SD2->D2_DOC == SF2->F2_DOC .and. SD2->D2_SERIE == SF2->F2_SERIE
 		aItem:= {}
-		aAdd(aItem,{"D1_COD",			SD2->D2_COD,				Nil})
-		aAdd(aItem,{"D1_QUANT",			SD2->D2_QUANT,				Nil})
-		aAdd(aItem,{"D1_VUNIT",			SD2->D2_PRCVEN,				Nil})
-		aAdd(aItem,{"D1_TOTAL",			SD2->D2_TOTAL,				Nil})
-		aAdd(aItem,{"D1_TES",			SD2->D2_TESENT,				Nil})
-		aAdd(aItem,{"D1_UM",			SD2->D2_UM,					Nil})
-		aAdd(aItem,{"D1_TIPODOC",		"64",						Nil})
-		aAdd(aItem,{"D1_ESPECIE",		"RTE",						Nil})
-		aAdd(aItem,{"D1_LOCAL",			"01" /*juk pode vir de SD2->D2_LOCDEST mas como vai ser quando não tiver saldo inicial?*/,Nil})
-		aAdd(aItem,{"D1_NFORI",			SD2->D2_DOC,				Nil})
-		aAdd(aItem,{"D1_SERIORI",		SD2->D2_SERIE,				Nil})
-		aAdd(aItem,{"D1_ITEMORI",		SD2->D2_ITEM,				Nil})
-		aAdd(aItem,{"D1_CUSTO",			SD2->D2_CUSTO1,				Nil})
-		aAdd(aItem,{"D1_CUSTO2",		SD2->D2_CUSTO2,				Nil})
-		aAdd(aItem,{"D1_LOTECTL",		SD2->D2_LOTECTL,			Nil})
-		aAdd(aItem,{"D1_DTVALID",		SD2->D2_DTVALID,			Nil})
-		aAdd(aItem,{"D1_NUMSERI",		SD2->D2_NUMSERI,			Nil})
-		aAdd(aItem,{"D1_LOCAL",			"P1",						Nil})
+		aAdd(aItem,{"D1_COD",			SD2->D2_COD,							Nil})
+		aAdd(aItem,{"D1_QUANT",			SD2->D2_QUANT,							Nil})
+		aAdd(aItem,{"D1_VUNIT",			SD2->D2_PRCVEN,							Nil})
+		aAdd(aItem,{"D1_TOTAL",			SD2->D2_TOTAL,							Nil})
+		aAdd(aItem,{"D1_TES",			superGetMV("SU_TRFILIN", .T., ""),		Nil})
+		aAdd(aItem,{"D1_UM",			SD2->D2_UM,								Nil})
+		aAdd(aItem,{"D1_TIPODOC",		"64",									Nil})
+		aAdd(aItem,{"D1_ESPECIE",		"RTE",									Nil})
+		aAdd(aItem,{"D1_LOCAL",			"01" /*juk pode vir de SD2->D2_LOCDEST mas como vai ser quando não tiver saldo inicial?*/,	Nil})
+		aAdd(aItem,{"D1_NFORI",			SD2->D2_DOC,							Nil})
+		aAdd(aItem,{"D1_SERIORI",		SD2->D2_SERIE,							Nil})
+		aAdd(aItem,{"D1_ITEMORI",		SD2->D2_ITEM,							Nil})
+		aAdd(aItem,{"D1_CUSTO",			SD2->D2_CUSTO1,							Nil})
+		aAdd(aItem,{"D1_CUSTO2",		SD2->D2_CUSTO2,							Nil})
+		aAdd(aItem,{"D1_LOTECTL",		SD2->D2_LOTECTL,						Nil})
+		aAdd(aItem,{"D1_DTVALID",		SD2->D2_DTVALID,						Nil})
+		aAdd(aItem,{"D1_NUMSERI",		SD2->D2_NUMSERI,						Nil})
+		aAdd(aItem,{"D1_LOCAL",			"P1",									Nil})
 		aItem := FWVetByDic( aItem, "SD1" )
 		aadd(aItens,aItem)
 		SD2->(dbSkip())
@@ -403,7 +513,10 @@ WSMETHOD POST InTraFil WSSERVICE nexSolucoes
 		self:setResponse(ENCODEUTF8(cRet))
 		self:setStatus(406)
 	else
-		cRet := "Gravou Ok" + CRLF + "Filial: " + fwXFilial("SF1") + "Doc: " + cDoc + CRLF + "Serie: " + cDocSeri
+		cRet := "Gravou Ok" + CRLF + ;
+		"Filial: " + fwXFilial("SF1") + CRLF + ;
+		"Doc: " + cDoc + CRLF + ;
+		"Serie: " + cDocSeri
 		self:setResponse(ENCODEUTF8(cRet))
 		self:setStatus(201)
 	EndIf
