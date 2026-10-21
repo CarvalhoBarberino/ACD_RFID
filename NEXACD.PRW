@@ -38,7 +38,7 @@ user function aptProd(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cS
 		{"D3_DOC",			cOp,								NIL},;
 		{"D3_ZB0COD",		cTags,								NIL};
 		}
-		//juk verificar se pode colocar o campo D3_PARCTOT
+	//juk verificar se pode colocar o campo D3_PARCTOT
 
 	lMsErroAuto		:= .F.
 	MSExecAuto({|x, y| mata250(x, y)}, aVetor, nOpc)
@@ -362,7 +362,6 @@ user function opToSegel()
 
 	dbSelectArea("SB1")
 	SB1->(dbSetOrder(1)) // B1_FILIAL + B1_COD
-
 	if !SB1->(msSeek(fwXFilial("SB1") + cCodProd))
 		msgAlert("Produto " + cCodProd + " não cadastrado na filial " + fwXFilial("SB1") + ".", NOME_FONTE)
 		return
@@ -1620,6 +1619,157 @@ user function docToSeg(cFilOri, cDoc, cSerie) // 1.2.2.2.4.2
 	fwRestArea(oArea)
 return
 
+/*/{Protheus.doc} CBRETIP2
+PE para fazer o CBRETEAN ser acionado mesmo com tamanho 10 de string 
+@type user function
+@author Julio Carvalho Barberino
+@since 21/10/2026
+@version 0
+/*/
+user function CBRETIP2()
+
+return "EAN128"
+
+/*/{Protheus.doc} toSegelEn
+Rotina para endereçar com numeros de serie de produto gerados pela SEGEL
+@type user function
+@author Julio Carvalho Barberino
+@since 20/10/2026
+@version 0
+/*/
+user function toSegelEn()
+	local oArea				:= fwGetArea()
+	local aHeader			:= {}
+	local cUrl				:= "http://192.168.0.3:8000" // juk usar parametros
+	local cPath				:= "/api/faturas_inbound" // juk usar parametros
+	local oRestClient		:= FWRest():New(cUrl) // https://tdn.totvs.com/display/public/framework/FWRest
+	local oJson0			:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
+	local oJson1			:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
+	local oJsonApa			:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
+	local aItensSDB			:= {}
+	local aItSDB			:= {}
+	local cRet, aCabSDA, cErro, cItem, nI
+	private lMsErroAuto
+
+	if SDA->DA_SALDO <= 0
+		msgAlert("Não há saldo " + SDA->DA_SALDO + " a endereçar.", NOME_FONTE)
+		fwRestArea(oArea)
+		return
+	endIf
+
+	dbSelectArea("SB1")
+	SB1->(dbSetOrder(1)) // B1_FILIAL + B1_COD
+	if !SB1->(msSeek(iif(empty(fwXFilial("SB1")), fwXFilial("SB1"), SDA->DA_FILIAL) + SDA->DA_PRODUTO))
+		msgAlert("Produto " + allTrim(SDA->DA_PRODUTO) + " não cadastrado na filial " + fwXFilial("SB1") + ".", NOME_FONTE)
+		fwRestArea(oArea)
+		return
+	endIf
+
+	oJson0['filial'] := allTrim(SDA->DA_FILIAL)
+	oJson0['cod_prod'] := allTrim(SDA->DA_PRODUTO)
+	oJson0['qtd'] := SDA->DA_SALDO
+	oJson0['lote'] := allTrim(SDA->DA_LOTECTL)
+	oJson0['subLote'] := allTrim(SDA->DA_NUMLOTE)
+	oJson0['local'] := allTrim(SDA->DA_LOCAL)
+	oJson0['doc'] := allTrim(SDA->DA_DOC)
+	oJson0['serie'] := allTrim(SDA->DA_SERIE)
+	oJson0['fornece'] := allTrim(SDA->DA_CLIFOR)
+	oJson0['loja'] := allTrim(SDA->DA_LOJA)
+	oJson0['tipoDoc'] := allTrim(SDA->DA_TIPONF)
+	oJson0['tabelaOrig'] := allTrim(SDA->DA_ORIGEM)
+	oJson0['daNumSeq'] := allTrim(SDA->DA_NUMSEQ)
+
+	oJsonApa['itens'] := {oJson0}
+
+/* Espera enviar
+{
+	"filial": "01",
+	"cod_prod": "XXXXXX",
+	"descricao": "SUENOLAR SUPER DORMILAR  111 X 222",
+	"local": "01",
+	"lote": "AABV8801001",
+	"serieFat": "001",
+	"doc": "999999999",
+	"fornece": "666666",
+	"quant": 30
+}
+*/
+
+	Aadd(aHeader, "Content-Type: application/json")
+	Aadd(aHeader, "Authorization: Basic " + encode64(superGetMV("SU_USRSEGE", .T., "SuperEu") + ":" + superGetMV("SU_PSWSEGE", .T., "Teste@123")))
+	oRestClient:SetPath(cPath)
+	oRestClient:SetPostParams(oJsonApa:toJson())
+	lRetOk := oRestClient:post(aHeader)
+	if lRetOk
+		cRet := oRestClient:getResult()
+		cErro := oJson1:fromJson(cRet)
+	else
+		cRet := "ERRO" + CRLF + oRestClient:getLastError() + CRLF + "RESULTADO: " + CRLF + oRestClient:getResult()
+		msgAlert(cRet, NOME_FONTE)
+		fwRestArea(oArea)
+		return
+	endIf
+
+/* Espera receber
+{
+  "itens": [
+    {
+      "filial": "01",
+      "cod_prod": "XXXXXX",
+      "descricao": "SUENOLAR SUPER DORMILAR  111 X 222",
+      "local": "01",
+      "lote": "AABV8801001",
+      "serie": "001",
+      "doc": "999999999",
+      "fornece": "666666",
+      "qtd": 1,
+      "numserie": "ASP0469712"
+    }
+  ]
+}
+*/
+
+
+	//Cabecalho com a informação do item e NumSeq que sera endereçado.
+	aCabSDA := {;
+		{"DA_FILIAL",		SDA->DA_FILIAL,		Nil},;
+		{"DA_PRODUTO",		SDA->DA_PRODUTO,	Nil},;
+		{"DA_NUMSEQ",		SDA->DA_NUMSEQ,		Nil};
+		}
+	cItem = "0001"
+	for nI := 1 to len(oJson1['itens'])
+		//Dados do item que será endereçado
+		aItSDB := {;
+			{"DB_ITEM",			cItem,										Nil},;
+			{"DB_ESTORNO",		"" /*juk a definir*/,						Nil},;
+			{"DB_LOCALIZ",		"APT" /*juk criar parametro*/,					Nil},;
+			{"DB_DATA",			dDataBase,									Nil},;
+			{"DB_NUMSERI",		oJson1['itens'][nI]['numserie'],			Nil},;
+			{"DB_QUANT",		oJson1['itens'][nI]['qtd'],					Nil},;
+			{"DB_ZB0COD",		oJson1['itens'][nI]['numserie']/*juk a definir*/,						Nil}}
+		aadd(aItensSDB,aitSDB)
+		cItem := soma1(;
+			cItem /*OBRIGATORIO Variável em questão*/, ;
+			 /*Posição a ser movimentada*/, ;
+			 /*Se deve usar caracteres Minúsculos*/, ;
+			.T. /*Define se utiliza a numeração sequancial utilizando todos os caracteres mesmo antes de 999999*/)
+	next nI
+	#IFDEF MONITORAR
+		showLog(varInfo("aCabSDA", aCabSDA, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
+		showLog(varInfo("aItensSDB", aItensSDB, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
+	#ENDIF
+	//Executa o endere?amento do item
+	lMsErroAuto := .F.
+	MATA265(aCabSDA, aItensSDB, 3) // Necessita declara antes (lá em cima) private lMsErroAuto
+	if lMsErroAuto
+		mostraErro() // mostraErro("\temp\erro.txt")
+		fwRestArea(oArea)
+		return
+	endIf
+	msgAlert("Gravou ok", NOME_FONTE)
+	fwRestArea(oArea)
+return
+
 /*/{Protheus.doc} MTA265MNU
 PE para colocar botão no menu da rotina Endereçamento de produtos https://tdn.totvs.com/pages/releaseview.action?pageId=331845273
 @type user function
@@ -1627,6 +1777,6 @@ PE para colocar botão no menu da rotina Endereçamento de produtos https://tdn.to
 @since 08/10/2026
 @version 0
 /*/
-User Function MTA265MNU()//.customização do cliente
-	aAdd(aRotina,{ "Nova Rotina", "NovaRotina", 0 , 2, 0, .F.})
+user function MTA265MNU()//.customização do cliente
+	aAdd(aRotina,{ "Enviar p SEGEL", "U_toSegelEn()", 0 , 2, 0, .F.})
 Return
