@@ -1392,15 +1392,13 @@ user function ACDGCB9()
 	#IFDEF MONITORAR
 		conOut("Ponto de entrada ACDGCB9 Responsável por gravar os dados da separação. EM QUE PONTO:No final da função, permite validar a quantidade separada. https://tdn.totvs.com/pages/releaseview.action?pageId=6091045")
 	#ENDIF
-/*
-	if type("cZb0Cod") == "C"
-		CB9->CB9_ZB0COD := cZb0Cod // Variavel publica criada no ponto de entrada CBRETEAN
-	endIf
-*/
-	TMPNEXACD->(DbGoTop()) // tabela temporária criada no ponto de entrada CBRETEAN
-	cId := TMPNEXACD->ZB0_CODETI
-	CB9->CB9_ZB0COD := cId // Customização de usuário...
-	TMPNEXACD->(dbCloseArea())
+
+	if (select("TMPNEXACD")) > 0
+		TMPNEXACD->(DbGoTop()) // tabela temporária criada no ponto de entrada CBRETEAN
+		cId := TMPNEXACD->ZB0_CODETI
+		CB9->CB9_ZB0COD := cId // Customização de usuário...
+		TMPNEXACD->(dbCloseArea())
+	EndIf
 return
 
 /*/{Protheus.doc} ACD170VE

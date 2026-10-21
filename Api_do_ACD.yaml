@@ -214,6 +214,7 @@ paths:
                     type: object
                     required:
                       - filial
+                      - serieFat
                       - fatura
                       - cliente
                       - nome_cli
@@ -224,6 +225,8 @@ paths:
                         x-stoplight:
                           id: kstk01svxq09a
                         example: '01'
+                      serieFat:
+                        type: string
                       fatura:
                         type: string
                         x-stoplight:
@@ -253,7 +256,6 @@ paths:
                             - ordsep
                             - cod_prod
                             - lote
-                            - numserie
                             - qtd
                             - tags
                           properties:
@@ -303,6 +305,7 @@ paths:
                   facturas:
                     - filial: '01'
                       fatura: '999999999'
+                      serieFat: S1
                       cliente: '666666'
                       nome_cli: SUENOLAR
                       itens:
@@ -448,7 +451,7 @@ paths:
                         x-stoplight:
                           id: tm4av8csw3hvt
                         example: AABV8801001
-                      serie:
+                      serieFat:
                         type: string
                         x-stoplight:
                           id: 24o8w1ndcw3fp
@@ -468,6 +471,8 @@ paths:
                         x-stoplight:
                           id: uz22dd23fdja7
                         example: 30
+                      sublote:
+                        type: string
             examples:
               Example 1:
                 value:
@@ -477,10 +482,11 @@ paths:
                       descricao: SUENOLAR SUPER DORMILAR  111 X 222
                       local: '01'
                       lote: AABV8801001
-                      serie: '001'
+                      serieFat: '001'
                       doc: '999999999'
                       fornece: '666666'
                       qtd: 30
+                      sublote: '0001'
       security:
         - SegelBasic: []
     servers:
@@ -526,10 +532,6 @@ paths:
                   type: string
                   x-stoplight:
                     id: fwsn4qbn88vae
-                FilOrig:
-                  type: string
-                  x-stoplight:
-                    id: 0e0n30l27swac
                 FilDest:
                   type: string
                   x-stoplight:
@@ -571,7 +573,6 @@ paths:
               Example 1:
                 value:
                   'OrdemSaidaNum:': '000154'
-                  FilOrig: '01'
                   FilDest: '02'
                   Itens:
                     - CodProd: '0001546'
@@ -594,6 +595,14 @@ paths:
                       Endereco: '0048767'
       security:
         - ProtheusBasic: []
+      parameters:
+        - schema:
+            type: string
+            example: '01,01'
+          in: header
+          name: tenantId
+          description: Empresa e filial de origem
+          required: true
     parameters: []
   /transf_fil/fatura:
     post:
@@ -738,10 +747,6 @@ paths:
                         type: string
                         x-stoplight:
                           id: e8npwnqwqx19n
-                      FilDest:
-                        type: string
-                        x-stoplight:
-                          id: du8drhtsubz7k
                       Itens:
                         type: array
                         x-stoplight:
@@ -769,7 +774,6 @@ paths:
                   Faturas:
                     - Fatura: '000258'
                       FilOrig: '01'
-                      FilDest: '02'
                       Itens:
                         - CodProd: '000495'
                           Qtd: 10
@@ -790,6 +794,14 @@ paths:
                         - CodProd: '000499'
                           Qtd: 50
                           SerialNumber: '000636'
+      parameters:
+        - schema:
+            type: string
+            example: '01,01'
+          in: header
+          name: tenantId
+          description: Empresa e filial de destino
+          required: true
     parameters: []
   /outbound_sell:
     post:
@@ -834,13 +846,13 @@ paths:
                   items:
                     type: object
                     properties:
-                      filial:
-                        type: string
                       fatura:
                         type: string
                       fat_serie:
                         type: string
                       cliente:
+                        type: string
+                      loja:
                         type: string
                       itens:
                         type: array
@@ -868,10 +880,10 @@ paths:
               Example 1:
                 value:
                   facturas:
-                    - filial: '01'
-                      fatura: '0300010035585'
+                    - fatura: '0300010035585'
                       fat_serie: S1
-                      cliente: '1234567890001'
+                      cliente: '123456789'
+                      loja: '0001'
                       itens:
                         - item: '1'
                           pedido: AACSJW
@@ -882,7 +894,14 @@ paths:
                           qtd: 1
                           tag: 300862D3D18BE4588BF15F48
       description: Endpoint PROTHEUS dedicado a receber faturas que passaram no portal de saída expedição.
-      parameters: []
+      parameters:
+        - schema:
+            type: string
+            example: '01,01'
+          in: header
+          name: tenantId
+          description: Empresa e filial logada
+          required: true
 components:
   schemas: {}
   securitySchemes:
