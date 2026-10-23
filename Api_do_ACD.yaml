@@ -295,10 +295,12 @@ paths:
                                 id: txi835do074gd
                               example: 1
                             tags:
-                              type: string
+                              type: array
                               x-stoplight:
                                 id: 8cdjin5krwoh5
                               example: ZZZZZZZZZZZZZZZ
+                              items:
+                                type: string
             examples:
               Example 1:
                 value:
@@ -316,7 +318,8 @@ paths:
                           lote: AABV8801001
                           numserie: ASP0469712
                           qtd: 1
-                          tags: ZZZZZZZZZZZZZZZ
+                          tags:
+                            - ZZZZZZZZZZZZZZZ
       security:
         - SegelBasic: []
     parameters: []
@@ -786,7 +789,6 @@ paths:
                           SerialNumber: '000634'
                     - Fatura: '000259'
                       FilOrig: '01'
-                      FilDest: '03'
                       Itens:
                         - CodProd: '000498'
                           Qtd: 40

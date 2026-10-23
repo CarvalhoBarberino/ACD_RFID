@@ -14,7 +14,7 @@ User Function LOCXPE11()
 	Local	aAreaSF1	:=	GetArea('SF1')
 	Local	aAreaSE2	:=	GetArea('SE2')
 	Local	aArea		:=	GetArea()
-	
+
 	DBSelectArea('SF1')
 	cFact	:=	F1_DOC
 	cSerie	:=	F1_SERIE
@@ -27,7 +27,7 @@ User Function LOCXPE11()
 	If DBSeek(xFilial('SE2')+cProv+cLoja+cSerie+cFact)
 		While !EOF( ) .and. E2_NUM == cFact .and. E2_PREFIXO == cSerie .and. E2_FORNECE == cProv
 			RECLOCK('SE2',.F.)
-				E2_UDESPA	:=	cDespacho
+			E2_UDESPA	:=	cDespacho
 			MSUNLOCK()
 			DBSkip()
 		EndDo
@@ -38,8 +38,10 @@ User Function LOCXPE11()
 	RestArea( aArea )
 
 	if isInCallStack("MATA460B") // Se for chamado pela rotina Documento de saída CARGA
-		msgAlert("PE: LOCXPE11" + CRLF + "SF2->F2_DOC " + SF2->F2_DOC)
-		if msgYesNo("Confirma o envio de documento fiscal para a Segel?", NOME_FONTE)
+		if msgYesNo("Confirma o envio de documento fiscal para a Segel?" + CRLF + ;
+				"Filial: " + SF2->F2_FILIAL + CRLF + ;
+				"Documento: " + SF2->F2_DOC + CRLF + ;
+				"Serie Doc: " + SF2->F2_SERIE, NOME_FONTE)
 			docToSeg(SF2->F2_FILIAL, SF2->F2_DOC, SF2->F2_SERIE)
 		endIf
 	endIf

@@ -184,7 +184,7 @@ ORDER BY
 /*
 Criado		SU_PSWSEGE		password
 Criado		SU_TMAPT		002
-Criado		SU_URLSEGE		http://192.168.0.3:8000/api
+Criado		SU_URLSEGE		http://192.168.0.3:8000
 Criado		SU_USRSEGE		operador@cliente.com
 Criado		SU_DIAPIKE		647fbc3a-9e8d-49b8-ba28-b5ec3d72b673
 Alterado	SU_DIAPIUR		https://external.driv.in
@@ -193,4 +193,12 @@ Criado		SU_DIORDER		/api/external/v2/orders?
 Criado		SU_DIRESUL		/api/external/v2/results?
 
 Criado		NX_APTEND		APT
+
+Criado		SU_TRFILIN		013
+Criado		SU_TRFILOU		503
+Criado		SU_ORDPRSE		/api/production_order
+Criado		SU_FATOUSE		/faturas_outbound
+Criado		SU_FATINSE		/api/faturas_inbound
+Criado		SU_SBESEGE		APT
+/transf_fil/fatura talvez não use esse endpoint
 */

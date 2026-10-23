@@ -38,7 +38,6 @@ user function aptProd(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cS
 		{"D3_DOC",			cOp,								NIL},;
 		{"D3_ZB0COD",		cTags,								NIL};
 		}
-	//juk verificar se pode colocar o campo D3_PARCTOT
 
 	lMsErroAuto		:= .F.
 	MSExecAuto({|x, y| mata250(x, y)}, aVetor, nOpc)
@@ -188,18 +187,6 @@ Exemplo de vetor que a função espera receber:
 	dbSelectArea('ZB0')
 	ZB0->(dbSetOrder(1))
 
-	//juk precisa tratar o que acontece caso a ZB0 não seja gravada com um ZB0_CODETI. Existia um controle de numeração atravez de parametro e funcao CBProxCod('MV_CODCB0') na Ledervin, mas foi abandonado na suenoLar
-	/*
-	While .T.
-		cNumDisponivel := Padr(CBProxCod('MV_CODZB0'),10)
-		If !ZB0->(DbSeek(xFilial("ZB0")+cNumDisponivel))
-			msgAlert("Numero disponivel para gravação: " + cNumDisponivel, NOME_FONTE + " informa")
-			exit
-		endIf
-	EndDo
-	*/
-	//juk precisa tratar o que acontece caso a ZB0 não seja gravada com um ZB0_CODETI. Existia um controle de numeração atravez de parametro e funcao CBProxCod('MV_CODCB0') na Ledervin, mas foi abandonado na suenoLar
-
 	recLock('ZB0',.T.)
 	for nI := 1 to len(aDadosZB0)
 		cTipoEsperado := tamSx3(aDadosZB0[nI][1])[3]
@@ -209,7 +196,7 @@ Exemplo de vetor que a função espera receber:
 		If lTipoIgual .and. lTamanhoOk
 			ZB0->&(aDadosZB0[nI][1]) := aDadosZB0[nI][2]
 			if aDadosZB0[nI][1] == "ZB0_CODETI"
-				cNumDisponivel := aDadosZB0[nI][2] //juk precisa tratar o que acontece caso a ZB0 não seja gravada com um ZB0_CODETI. Existia um controle de numeração atravez de parametro e funcao CBProxCod('MV_CODCB0') na Ledervin, mas foi abandonado na suenoLar
+				cNumDisponivel := aDadosZB0[nI][2]
 			endIf
 		endIf
 	next
@@ -353,8 +340,8 @@ user function opToSegel()
 	local aHeader		:= {}
 	local cCodProd		:= allTrim(SC2->C2_PRODUTO)
 	local cOp			:= allTrim(SC2->C2_NUM + SC2->C2_ITEM + SC2->C2_SEQUEN)
-	local cUrl			:= "http://192.168.0.3:8000" // juk usar parametros
-	local cPath			:= "/api/production_order" // juk usar parametros
+	local cUrl			:= superGetMV("SU_URLSEGE", .T., "http://192.168.0.3:8000")
+	local cPath			:= superGetMV("SU_ORDPROD", .T., "/api/production_order")
 	local lRetOk
 	local oRestClient	:= FWRest():New(cUrl) // https://tdn.totvs.com/display/public/framework/FWRest
 	local OJson0		:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
@@ -427,7 +414,7 @@ user function opToSegel()
 		cRet += "ERRO" + CRLF + oRestClient:getLastError() + CRLF + oRestClient:getResult()
 	endIf
 	#IFDEF MONITORAR
-		showLog(cRet) // juk Continuar daqui. Precisa decidir o que fazer com a informação de retorno. Precisa criar campo na SC2 pra guardar o retorno
+		showLog(cRet)
 	#ENDIF
 
 	fwRestArea(oArea)
@@ -787,11 +774,11 @@ user function goDrvIn(cAliasTemp)
 									if oErroPost['response'][nIResponse]['details'][nIDetails]['data']['code'] == (cAliasTemp)->C9_CLIENTE
 										recLock('SC9',.F.)
 										SC9->C9_ZDRIVIN := aPostRet[2]
-										msUnLock()
-										recLock((cAliasTemp),.F.) // juk verificar se o certo é assim recLock(cAliasTemp,.F.). Ver PE OM200FIM
+										SC9->(msUnLock())
+										recLock((cAliasTemp),.F.)
 										(cAliasTemp)->COMUNIC := 4
 										(cAliasTemp)->SEL_OK := "  "
-										msUnLock() // juk verificar se o certo é assim (cAliasTemp)->(msUnLock()). Ver PE OM200FIM
+										(cAliasTemp)->(msUnLock())
 									endIf
 								next nIDetails
 							endIf
@@ -912,7 +899,7 @@ static function escolheTk(aTokensDt)
 			return aDados[nI, 4]
 		endIf
 	next nI
-return // juk precisa tratar o que acontece se não tiver dados a retornar.
+return ""
 
 /*/{Protheus.doc} uniqueSel
 Garante que seja escolhido apenas 1 token de cenario
@@ -1250,7 +1237,7 @@ user function DrvToOMS(cAliasTemp)
 											msgAlert("SC5 não encontrado.", NOME_FONTE)
 											loop
 										endIf
-										if cPedidoAux != cPedido // juk impede dois aItem para o mesmo pedido
+										if cPedidoAux != cPedido // impede dois aItem para o mesmo pedido
 											Aadd(aItem, ;
 												{;
 												aCab[2,2]			/*01 - Código da carga*/, ;
@@ -1462,9 +1449,9 @@ Funcao chamada a partir do PE LOCXPE11 e serve para enviar dados de faturamento 
 @version 0
 @param cFilOri, filial
 @param cDoc, numero do documento fiscal
-@param cSerie, serie do documento fiscal
+@param cSerieFat, serie do documento fiscal
 /*/
-user function docToSeg(cFilOri, cDoc, cSerie) // 1.2.2.2.4.2
+user function docToSeg(cFilOri, cDoc, cSerieFat) // 1.2.2.2.4.2
 	local oArea			:= fwGetArea()
 	local cAliasZB0		:= getNextAlias()
 	local cQy			:= ""
@@ -1473,8 +1460,8 @@ user function docToSeg(cFilOri, cDoc, cSerie) // 1.2.2.2.4.2
 	local oJsonOut		:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
 	local oJsonfat		:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
 	local cJsonOut
-	local cUrl			:= "http://192.168.0.3:8000" // juk usar parametros
-	local cPath			:= "/faturas_outbound" // juk usar parametros
+	local cUrl			:= superGetMV("SU_URLSEGE", .T., "http://192.168.0.3:8000")
+	local cPath			:= superGetMV("SU_FATUOUT", .T., "/faturas_outbound")
 	local oRestClient	:= FWRest():New(cUrl) // https://tdn.totvs.com/display/public/framework/FWRest
 	local cRet
 
@@ -1530,7 +1517,7 @@ user function docToSeg(cFilOri, cDoc, cSerie) // 1.2.2.2.4.2
 	cQy += "	AND F2.F2_LOJA = A1.A1_LOJA " + CRLF
 	cQy += "WHERE " + CRLF
 	cQy += "	F2_DOC = '" + cDoc + "' " + CRLF
-	cQy += "	AND F2.F2_SERIE = '" + cSerie + "' " + CRLF
+	cQy += "	AND F2.F2_SERIE = '" + cSerieFat + "' " + CRLF
 	cQy += "	AND F2.D_E_L_E_T_ = '' " + CRLF
 	cQy += "	AND F2.F2_FILIAL = '" + cFilOri + "' " + CRLF
 	cQy += "ORDER BY " + CRLF
@@ -1559,7 +1546,7 @@ user function docToSeg(cFilOri, cDoc, cSerie) // 1.2.2.2.4.2
           "lote": "AABV8801001",
           "numserie": "ASP0469712",
           "qtd": 1,
-          "tags": "ZZZZZZZZZZZZZZZ"
+          "tags": ["ZZZZZZZZZZZZZZZ"]
         }
       ]
     }
@@ -1568,8 +1555,8 @@ user function docToSeg(cFilOri, cDoc, cSerie) // 1.2.2.2.4.2
 */
 	if (cAliasZB0)->(eOF())
 		msgAlert("Não ha dados para enviar para Segel", NOME_FONTE)
-		fwRestArea(oArea) // juk tirar esse corte
-		return // juk tirar esse corte
+		fwRestArea(oArea)
+		return
 	endIf
 
 	(cAliasZB0)->(dbGoTop())
@@ -1582,14 +1569,14 @@ user function docToSeg(cFilOri, cDoc, cSerie) // 1.2.2.2.4.2
 		oJsonItem['lote'] := (cAliasZB0)->CB9_LOTECT
 		oJsonItem['numserie'] := (cAliasZB0)->CB9_NUMSER
 		oJsonItem['qtd'] := (cAliasZB0)->CB9_QTESEP
-		oJsonItem['tag'] := (cAliasZB0)->CB9_ZB0COD // juk corrigir o nome na API
+		oJsonItem['tags'] := {(cAliasZB0)->CB9_ZB0COD} // juk tem que fazer um laço para colocar codeti dentro desse array
 		aAdd(aItens, oJsonItem)
 		(cAliasZB0)->(dbSkip())
 	endDo
 	(cAliasZB0)->(dbGoTop())
 	oJsonfat['filial'] := cFilOri
 	oJsonfat['fatura'] := cDoc
-	oJsonfat['serie'] := cSerie // juk colocar na API
+	oJsonfat['serieFat'] := cSerieFat
 	oJsonfat['cliente'] := (cAliasZB0)->CLIENTE
 	oJsonfat['nome_cli'] := (cAliasZB0)->A1_NOME
 	oJsonfat['itens'] := aItens
@@ -1638,8 +1625,8 @@ Rotina para endereçar com numeros de serie de produto gerados pela SEGEL
 user function toSegelEn()
 	local oArea				:= fwGetArea()
 	local aHeader			:= {}
-	local cUrl				:= "http://192.168.0.3:8000" // juk usar parametros
-	local cPath				:= "/api/faturas_inbound" // juk usar parametros
+	local cUrl				:= superGetMV("SU_URLSEGE", .T., "http://192.168.0.3:8000")
+	local cPath				:= superGetMV("SU_FATURIN", .T., "/api/faturas_inbound")
 	local oRestClient		:= FWRest():New(cUrl) // https://tdn.totvs.com/display/public/framework/FWRest
 	local oJson0			:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
 	local oJson1			:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
@@ -1739,12 +1726,12 @@ user function toSegelEn()
 		//Dados do item que será endereçado
 		aItSDB := {;
 			{"DB_ITEM",			cItem,										Nil},;
-			{"DB_ESTORNO",		"" /*juk a definir*/,						Nil},;
-			{"DB_LOCALIZ",		"APT" /*juk criar parametro*/,					Nil},;
+			{"DB_ESTORNO",		"",											Nil},;
+			{"DB_LOCALIZ",		superGetMV("SU_SBESEGE", .T., "ETIQUETANOVA") /*parametro com o mesmo tipo de compartilhamento da tabela SBE*/,					Nil},;
 			{"DB_DATA",			dDataBase,									Nil},;
 			{"DB_NUMSERI",		oJson1['itens'][nI]['numserie'],			Nil},;
 			{"DB_QUANT",		oJson1['itens'][nI]['qtd'],					Nil},;
-			{"DB_ZB0COD",		oJson1['itens'][nI]['numserie']/*juk a definir*/,						Nil}}
+			{"DB_ZB0COD",		oJson1['itens'][nI]['numserie'],			Nil}}
 		aadd(aItensSDB,aitSDB)
 		cItem := soma1(;
 			cItem /*OBRIGATORIO Variável em questão*/, ;

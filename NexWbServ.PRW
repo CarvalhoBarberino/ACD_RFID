@@ -5,7 +5,6 @@
 //#include "tbiconn.ch"
 
 #DEFINE NOME_FONTE "NexWbServ.PRW"
-#DEFINE compEmpre "01" // juk ver se isso ainda eh util
 
 WSRESTFUL nexSolucoes DESCRIPTION "webService com os metodos da NEX Solucoes" // https://tdn.totvs.com/display/public/framework/02.+Criando+uma+classe+REST https://terminaldeinformacao.com/2024/07/13/criando-um-webservice-rest-com-wsrestful-maratona-advpl-e-tl-535/
 
@@ -492,7 +491,7 @@ WSMETHOD POST InTraFil WSSERVICE nexSolucoes
 		aAdd(aItem,{"D1_UM",			SD2->D2_UM,								Nil})
 		aAdd(aItem,{"D1_TIPODOC",		"64",									Nil})
 		aAdd(aItem,{"D1_ESPECIE",		"RTE",									Nil})
-		aAdd(aItem,{"D1_LOCAL",			"01" /*juk pode vir de SD2->D2_LOCDEST mas como vai ser quando não tiver saldo inicial?*/,	Nil})
+		aAdd(aItem,{"D1_LOCAL",			SD2->D2_LOCDEST,						Nil})
 		aAdd(aItem,{"D1_NFORI",			SD2->D2_DOC,							Nil})
 		aAdd(aItem,{"D1_SERIORI",		SD2->D2_SERIE,							Nil})
 		aAdd(aItem,{"D1_ITEMORI",		SD2->D2_ITEM,							Nil})
@@ -533,7 +532,7 @@ EndPoint para teste, envio de comandos via REST
 WSMETHOD POST chamaBlock WSSERVICE nexSolucoes
 	local bBlock
 	local aParams
-	local cRet			:= "texto qualquer 1522"
+	local cRet			:= "formato inválido"
 	local oJson0		:= jsonObject():new()
 
 	oJson0:fromJson(self:getContent())
