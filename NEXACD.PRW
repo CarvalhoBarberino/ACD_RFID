@@ -536,6 +536,7 @@ user function C9DrivIn()
 	cQy += "		" + retSqlName("SA1") + " A1 " + CRLF
 	cQy += "		ON " + fwJoinFilial("SC9", "SA1", "C9", "A1", .T., , .T.) + " " + CRLF
 	cQy += "		AND A1_COD = C9_CLIENTE " + CRLF
+	cQy += "		AND A1.A1_LOJA = C9.C9_LOJA " + CRLF
 	cQy += "		AND A1.D_E_L_E_T_ = '' " + CRLF
 	cQy += "	INNER JOIN " + CRLF
 	cQy += "		" + retSqlName("SYA") + " YA " + CRLF
@@ -568,10 +569,10 @@ user function C9DrivIn()
 	cQy += "	C9_PEDIDO, " + CRLF
 	cQy += "	C9_ITEM, " + CRLF
 	cQy += "	C9_SEQUEN"
-	cQy := ChangeQuery(cQy)
 	#IFDEF MONITORAR
 		showLog(cQy)
 	#ENDIF
+	cQy := ChangeQuery(cQy)
 
 	dbUseArea(.T., "TOPCONN", TCGenQry(, , cQy), cAliasC9, .F., .T.)
 	dbSelectArea(cAliasC9)
@@ -739,7 +740,7 @@ user function goDrvIn(cAliasTemp)
 		endIf
 		cTokenDt := escolheTk(aTokensDt)
 		nAux := aScan(aTokensDt, {|x| cTokenDt == x['token']})
-		if iif(!empty(cTokenDt), msgYesNo("Confirma o envio do POST?" + CRLF + "Data: " + dToC(aDtEntrJson[nI, 1]) + " Token: " + cTokenDt, NOME_FONTE), .F.)
+		if iif(!empty(cTokenDt), msgYesNo("Confirma o envio do POST?" + CRLF + "Data: " + dToC(aDtEntrJson[nI, 1]) + " Token: " + cTokenDt, NOME_FONTE), .F.) // juk ver se é possível colocar o nome do token
 			aPostRet := postPedido(cTokenDt, aDtEntrJson[nI, 2])
 			(cAliasTemp)->(dbGoTop())
 			while !(cAliasTemp)->(eOF())
@@ -1296,7 +1297,7 @@ user function DrvToOMS(cAliasTemp)
 			DisarmTransaction()
 			Alert(cMsgErro)
 		Else
-			Alert("Sucesso na execução do ExecAuto OMSA200")
+			Alert("Sucesso na execução do ExecAuto OMSA200") // juk substtuir alert() por https://terminaldeinformacao.com/2021/04/28/utilizando-fwalert-para-exibir-mensagens-no-protheus/
 		EndIf
 
 		(cAliasTemp)->(dbSkip())
@@ -1626,7 +1627,7 @@ user function toSegelEn()
 	local oArea				:= fwGetArea()
 	local aHeader			:= {}
 	local cUrl				:= superGetMV("SU_URLSEGE", .T., "http://192.168.0.3:8000")
-	local cPath				:= superGetMV("SU_FATURIN", .T., "/api/faturas_inbound")
+	local cPath				:= superGetMV("SU_FATURIN", .T., "/api/faturas_inbound") // juk qual parametro é o certo SU_FATURIN ou SU_FATINSE
 	local oRestClient		:= FWRest():New(cUrl) // https://tdn.totvs.com/display/public/framework/FWRest
 	local oJson0			:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
 	local oJson1			:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject

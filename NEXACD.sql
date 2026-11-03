@@ -59,6 +59,7 @@ FROM
 		SA1010 A1 
 		ON A1.A1_FILIAL = ' '  
 		AND A1_COD = C9_CLIENTE 
+		AND A1.A1_LOJA = C9.C9_LOJA 
 		AND A1.D_E_L_E_T_ = '' 
 	INNER JOIN 
 		SYA010 YA 
@@ -201,4 +202,6 @@ Criado		SU_FATOUSE		/faturas_outbound
 Criado		SU_FATINSE		/api/faturas_inbound
 Criado		SU_SBESEGE		APT
 /transf_fil/fatura talvez não use esse endpoint
+
+Criado		SU_TRFILOC		P1
 */

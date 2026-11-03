@@ -1,3 +1,5 @@
+#INCLUDE "protheus.ch"
+
 #DEFINE NOME_FONTE		"LOCXPE11.prw"
 /*
 	Punto de entrada que se ejecuta al finalizar la inclusion de la factura de entrada.
@@ -42,7 +44,7 @@ User Function LOCXPE11()
 				"Filial: " + SF2->F2_FILIAL + CRLF + ;
 				"Documento: " + SF2->F2_DOC + CRLF + ;
 				"Serie Doc: " + SF2->F2_SERIE, NOME_FONTE)
-			docToSeg(SF2->F2_FILIAL, SF2->F2_DOC, SF2->F2_SERIE)
+			U_docToSeg(SF2->F2_FILIAL, SF2->F2_DOC, SF2->F2_SERIE)
 		endIf
 	endIf
 Return

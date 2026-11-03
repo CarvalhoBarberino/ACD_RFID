@@ -296,6 +296,7 @@ WSMETHOD POST OutTraFil WSSERVICE nexSolucoes // 1.2.2.2.5.1
 		cRet := MostraErro("MostraErro.txt")
 		self:setResponse(ENCODEUTF8(cRet))
 		self:setStatus(406)
+		return .T.
 	EndIf
 
 	dbSelectArea('SF2')
@@ -395,7 +396,7 @@ WSMETHOD POST InTraFil WSSERVICE nexSolucoes
 	local cLoja			:= padR(oJsonIn['loja'], tamSX3("F2_LOJA")[1])
 	local aCab			:= {}
 	local aItens		:= {}
-	local aItem, cRet
+	local aItem, cRet, nItem
 	private lMsErroAuto	:= .F.
 /* Exemplo de json que espera receber
 {
@@ -455,7 +456,7 @@ WSMETHOD POST InTraFil WSSERVICE nexSolucoes
 	aAdd(aCab,{"F1_SERIE",		SF2->F2_SERIE,			Nil})
 	aAdd(aCab,{"F1_EMISSAO",	SF2->F2_EMISSAO,		Nil})
 	aAdd(aCab,{"F1_FORNECE",	SF2->F2_CLIENTE,		Nil})
-	aAdd(aCab,{"F1_LOJA",		"01" /*SF2->F2_LOJA*/,	Nil})
+	aAdd(aCab,{"F1_LOJA",		"01" /*SF2->F2_LOJA juk precisa buscar a loja na SX5?*/,	Nil})
 	aAdd(aCab,{"F1_TIPODOC",	"64",					Nil})
 	aAdd(aCab,{"F1_ESPECIE",	"RTE",					Nil})
 	aAdd(aCab,{"F1_EST",		SF2->F2_EST,			Nil})
@@ -481,28 +482,42 @@ WSMETHOD POST InTraFil WSSERVICE nexSolucoes
 		return .T.
 	endIf
 
-	while SD2->D2_DOC == SF2->F2_DOC .and. SD2->D2_SERIE == SF2->F2_SERIE
-		aItem:= {}
-		aAdd(aItem,{"D1_COD",			SD2->D2_COD,							Nil})
-		aAdd(aItem,{"D1_QUANT",			SD2->D2_QUANT,							Nil})
-		aAdd(aItem,{"D1_VUNIT",			SD2->D2_PRCVEN,							Nil})
-		aAdd(aItem,{"D1_TOTAL",			SD2->D2_TOTAL,							Nil})
-		aAdd(aItem,{"D1_TES",			superGetMV("SU_TRFILIN", .T., ""),		Nil})
-		aAdd(aItem,{"D1_UM",			SD2->D2_UM,								Nil})
-		aAdd(aItem,{"D1_TIPODOC",		"64",									Nil})
-		aAdd(aItem,{"D1_ESPECIE",		"RTE",									Nil})
-		aAdd(aItem,{"D1_LOCAL",			SD2->D2_LOCDEST,						Nil})
-		aAdd(aItem,{"D1_NFORI",			SD2->D2_DOC,							Nil})
-		aAdd(aItem,{"D1_SERIORI",		SD2->D2_SERIE,							Nil})
-		aAdd(aItem,{"D1_ITEMORI",		SD2->D2_ITEM,							Nil})
-		aAdd(aItem,{"D1_CUSTO",			SD2->D2_CUSTO1,							Nil})
-		aAdd(aItem,{"D1_CUSTO2",		SD2->D2_CUSTO2,							Nil})
-		aAdd(aItem,{"D1_LOTECTL",		SD2->D2_LOTECTL,						Nil})
-		aAdd(aItem,{"D1_DTVALID",		SD2->D2_DTVALID,						Nil})
-		aAdd(aItem,{"D1_NUMSERI",		SD2->D2_NUMSERI,						Nil})
-		aAdd(aItem,{"D1_LOCAL",			"P1",									Nil})
-		aItem := FWVetByDic( aItem, "SD1" )
-		aadd(aItens,aItem)
+	while (;
+			SD2->D2_FILIAL	== cFilOri .and. ;
+			SD2->D2_DOC		== cDoc .and. ;
+			SD2->D2_SERIE	== cDocSeri .and. ;
+			SD2->D2_CLIENTE	== cCliente .and. ;
+			SD2->D2_LOJA	== cLoja)
+
+		for nItem := 1 to len(oJsonIn['Itens'])
+			if (;
+					allTrim(oJsonIn['Itens'][nItem]['item'])			== allTrim(SD2->D2_ITEM) .and. ;
+					allTrim(oJsonIn['Itens'][nItem]['CodProd'])			== allTrim(SD2->D2_COD) .and. ;
+					allTrim(oJsonIn['Itens'][nItem]['SerialNumber'])	== allTrim(SD2->D2_NUMSERI))
+				aItem:= {}
+				aAdd(aItem,{"D1_COD",			SD2->D2_COD,							Nil})
+				aAdd(aItem,{"D1_QUANT",			SD2->D2_QUANT,							Nil})
+				aAdd(aItem,{"D1_VUNIT",			SD2->D2_PRCVEN,							Nil})
+				aAdd(aItem,{"D1_TOTAL",			SD2->D2_TOTAL,							Nil})
+				aAdd(aItem,{"D1_TES",			superGetMV("SU_TRFILIN", .T., ""),		Nil})
+				aAdd(aItem,{"D1_UM",			SD2->D2_UM,								Nil})
+				aAdd(aItem,{"D1_TIPODOC",		"64",									Nil})
+				aAdd(aItem,{"D1_ESPECIE",		"RTE",									Nil})
+				aAdd(aItem,{"D1_LOCAL",			superGetMV("SU_TRFILOC", .T., "P1"),	Nil})
+				aAdd(aItem,{"D1_NFORI",			SD2->D2_DOC,							Nil})
+				aAdd(aItem,{"D1_SERIORI",		SD2->D2_SERIE,							Nil})
+				aAdd(aItem,{"D1_ITEMORI",		SD2->D2_ITEM,							Nil})
+				aAdd(aItem,{"D1_CUSTO",			SD2->D2_CUSTO1,							Nil})
+				aAdd(aItem,{"D1_CUSTO2",		SD2->D2_CUSTO2,							Nil})
+				aAdd(aItem,{"D1_LOTECTL",		SD2->D2_LOTECTL,						Nil})
+				aAdd(aItem,{"D1_DTVALID",		SD2->D2_DTVALID,						Nil})
+				aAdd(aItem,{"D1_NUMSERI",		SD2->D2_NUMSERI,						Nil})
+				aAdd(aItem,{"D1_LOCALIZ",		"APT",									Nil})
+				aItem := FWVetByDic( aItem, "SD1" )
+				aadd(aItens,aItem)
+			endIf
+		next nItem
+
 		SD2->(dbSkip())
 	endDo
 
@@ -513,9 +528,9 @@ WSMETHOD POST InTraFil WSSERVICE nexSolucoes
 		self:setStatus(406)
 	else
 		cRet := "Gravou Ok" + CRLF + ;
-		"Filial: " + fwXFilial("SF1") + CRLF + ;
-		"Doc: " + cDoc + CRLF + ;
-		"Serie: " + cDocSeri
+			"Filial: " + fwXFilial("SF1") + CRLF + ;
+			"Doc: " + cDoc + CRLF + ;
+			"Serie: " + cDocSeri
 		self:setResponse(ENCODEUTF8(cRet))
 		self:setStatus(201)
 	EndIf
