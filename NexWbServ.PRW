@@ -45,7 +45,7 @@ WSMETHOD POST apontamento_producao WSSERVICE nexSolucoes
 
 	if !empty(cErroJson)
 		self:setStatus(400)
-		oJsonRet["erro"] := "Erro ao fazer parse do json, erro ao interpretar arquivo json" + cErroJson + " " + NOME_FONTE
+		oJsonRet["erro"] := "Error al analizar el JSON." + cErroJson + " " + NOME_FONTE
 		cRet := oJsonRet:toJson()
 		self:setResponse(ENCODEUTF8(cRet))
 		self:setStatus(400)
@@ -63,7 +63,7 @@ WSMETHOD POST apontamento_producao WSSERVICE nexSolucoes
 	cTags		:= oJsonReceb:GetJsonObject("tags")
 
 	BEGIN TRANSACTION
-		aExecAut := {.F., "Erro: U_aptProd nÃ£o terminou"}
+		aExecAut := {.F., "Error: U_aptProd no terminó"}
 		aExecAut := U_aptProd(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cSerie, cTags)
 		if !aExecAut[1]
 			DisarmTransaction()
@@ -76,7 +76,7 @@ WSMETHOD POST apontamento_producao WSSERVICE nexSolucoes
 		endIf
 		oJsonRet["U_aptProd"] := aExecAut[2]
 
-		aExecAut := {.F., "Erro: U_endereca nÃ£o terminou"}
+		aExecAut := {.F., "Error: U_endereca no terminó"}
 		aExecAut := U_endereca(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cSerie, cTags)
 		if !aExecAut[1]
 			DisarmTransaction()
@@ -110,7 +110,7 @@ WSMETHOD POST saida_produto WSSERVICE nexSolucoes // 1.2.2.2.4.2
 	local cErroJson		:= oJsonIn:fromJson(cConteudo) // Variavel que indica se houve erro na interpretacao do json
 	//local oJsonOut		:= jsonObject():new() // Json de resposta
 	local nFat, cFatura, cFatSerie, cCliente, cLoja, cProduto, cItem, cTag, nItem
-	local cRet			:= "Tags gravadas na tabela SD2:" + CRLF
+	local cRet			:= "Etiquetas grabadas en la tabla SD2:" + CRLF
 
 /* Exemplo de json que espera receber
 {
@@ -138,7 +138,7 @@ WSMETHOD POST saida_produto WSSERVICE nexSolucoes // 1.2.2.2.4.2
 */
 
 	if !empty(cErroJson)
-		cRet := "Erro na interpretacao do json." + CRLF + cErroJson
+		cRet := "Error al analizar el JSON." + CRLF + cErroJson
 		self:setResponse(ENCODEUTF8(cRet))
 		self:setStatus(404)
 		return .T.
@@ -217,7 +217,7 @@ WSMETHOD POST OutTraFil WSSERVICE nexSolucoes // 1.2.2.2.5.1
 }
 */
 	if !empty(cErroJson)
-		cRet := "Erro na interpretacao do json." + CRLF + cErroJson
+		cRet := "Error al analizar el JSON." + CRLF + cErroJson
 		self:setResponse(ENCODEUTF8(cRet))
 		self:setStatus(404)
 		return .T.
@@ -227,7 +227,7 @@ WSMETHOD POST OutTraFil WSSERVICE nexSolucoes // 1.2.2.2.5.1
 	dbSetOrder(1)
 	SX5->(dbGoTop())
 	if !SX5->(msSeek(cFilAnt + "75" + cFilAnt + cEmpAnt + cFilDest)) // https://centraldeatendimento.totvs.com/hc/pt-br/articles/4410465974167-Cross-Segmento-TOTVS-Backoffice-Linha-Protheus-ADVPL-Abertura-de-ambiente-em-Web-Service https://terminaldeinformacao.com/2025/08/25/como-definir-empresa-e-filial-numa-requisicao-em-rest/ https://centraldeatendimento.totvs.com/hc/es/articles/360007255512-Cross-Segmentos-TOTVS-BackOffice-L%C3%ADnea-Protheus-MI-Stock-y-Costos-SIGAEST-C%C3%B3mo-eliminar-v%C3%ADnculo-entre-Proveedores-vs-Sucursales-del-Sistema
-		self:setResponse(ENCODEUTF8("Relacionamento não encontrado na SX5 tabela 75 não encontrado."))
+		self:setResponse(ENCODEUTF8("Relación no encontrada en la tabla 75 de SX5."))
 		self:setStatus(404)
 		return .T.
 	endIf
@@ -239,7 +239,7 @@ WSMETHOD POST OutTraFil WSSERVICE nexSolucoes // 1.2.2.2.5.1
 	dbSetOrder(1)
 	SA2->(dbGoTop())
 	if !SA2->(msSeek(xFilial('SA2') + cCodFor + cLojFor))
-		self:setResponse(ENCODEUTF8("Fornecedor não encontrado na SA2."))
+		self:setResponse(ENCODEUTF8("Proveedor no encontrado en la tabla SA2."))
 		self:setStatus(404)
 		return .T.
 	endIf
@@ -268,7 +268,7 @@ WSMETHOD POST OutTraFil WSSERVICE nexSolucoes // 1.2.2.2.5.1
 
 	for nI := 1 to len(oJsonIn['Itens'])
 		if oJsonIn['Itens'][nI]['Qtd'] != 1 .and. valType(oJsonIn['Itens'][nI]['SerialNumber']) == "C"
-			self:setResponse(ENCODEUTF8("Item " + str(nI) + " controla numero de serie e tem quantidade maior que 1."))
+			self:setResponse(ENCODEUTF8("El artículo " + str(nI) + " controla el número de serie y tiene una cantidad mayor que 1."))
 			self:setStatus(400)
 			return .T.
 		endIf
@@ -303,7 +303,7 @@ WSMETHOD POST OutTraFil WSSERVICE nexSolucoes // 1.2.2.2.5.1
 	dbSetOrder(1) // F2_FILIAL+F2_DOC+F2_SERIE+F2_CLIENTE+F2_LOJA+F2_FORMUL+F2_TIPO '1920010000877                                          '
 	SF2->(dbGoTop())
 	if !SF2->(msSeek(fwXFilial("SF2") + cRem + cSeriRem + cCodFor + cLojFor + "S" + "B"))
-		self:setResponse(ENCODEUTF8("Documento não gravado na SF2" + CRLF + "Filial: " + fwXFilial("SF2") + CRLF + "Doc: " + cRem + CRLF + "Serie: " + cSeriRem + CRLF + "Cliente: " + cCodFor + CRLF + "Loja: " + cLojFor))
+		self:setResponse(ENCODEUTF8("Documento no grabado en la SF2" + CRLF + "Sucursal: " + fwXFilial("SF2") + CRLF + "Doc: " + cRem + CRLF + "Serie: " + cSeriRem + CRLF + "Cliente: " + cCodFor + CRLF + "Tienda: " + cLojFor))
 		self:setStatus(404)
 		return .T.
 	endIf
@@ -320,7 +320,7 @@ WSMETHOD POST OutTraFil WSSERVICE nexSolucoes // 1.2.2.2.5.1
 	dbSetOrder(3) // D2_FILIAL+D2_DOC+D2_SERIE+D2_CLIENTE+D2_LOJA+D2_COD+D2_ITEM
 	SD2->(dbGoTop())
 	if !SD2->(msSeek(fwXFilial("SD2") + cRem + cSeriRem + cCodFor + cLojFor))
-		self:setResponse(ENCODEUTF8("Documento não gravado na SD2" + CRLF + "Filial: " + fwXFilial("SF2") + CRLF + "Doc: " + cRem + CRLF + "Serie: " + cSeriRem + CRLF + "Cliente: " + cCodFor + CRLF + "Loja: " + cLojFor))
+		self:setResponse(ENCODEUTF8("Documento no grabado en la SD2" + CRLF + "Sucursal: " + fwXFilial("SF2") + CRLF + "Doc: " + cRem + CRLF + "Serie: " + cSeriRem + CRLF + "Cliente: " + cCodFor + CRLF + "Tienda: " + cLojFor))
 		self:setStatus(404)
 		return .T.
 	endIf
@@ -429,7 +429,7 @@ WSMETHOD POST InTraFil WSSERVICE nexSolucoes
 }
 */
 	if !empty(cErroJson)
-		cRet := "Erro na interpretacao do json." + CRLF + cErroJson
+		cRet := "Error al analizar el JSON." + CRLF + cErroJson
 		self:setResponse(ENCODEUTF8(cRet))
 		self:setStatus(404)
 		return .T.
@@ -439,12 +439,12 @@ WSMETHOD POST InTraFil WSSERVICE nexSolucoes
 	dbSetOrder(1) // F2_FILIAL+F2_DOC+F2_SERIE+F2_CLIENTE+F2_LOJA+F2_FORMUL+F2_TIPO
 	SF2->(dbGoTop())
 	if !SF2->(msSeek(cFilOri + cDoc + cDocSeri + cCliente + cLoja))
-		self:setResponse(ENCODEUTF8("Documento não encontrado na SF2" + CRLF + ;
-			"Filial: " + cFilOri + CRLF + ;
+		self:setResponse(ENCODEUTF8("Documento no grabado en la SF2" + CRLF + ;
+			"FilSucursalial: " + cFilOri + CRLF + ;
 			"Doc: " + cDoc + CRLF + ;
 			"Serie: " + cDocSeri + CRLF + ;
 			"Cliente: " + cCliente + CRLF + ;
-			"Loja: " + cLoja))
+			"Tienda: " + cLoja))
 		self:setStatus(404)
 		return .T.
 	endIf
@@ -472,7 +472,7 @@ WSMETHOD POST InTraFil WSSERVICE nexSolucoes
 	dbSetOrder(3) // D2_FILIAL+D2_DOC+D2_SERIE+D2_CLIENTE+D2_LOJA+D2_COD+D2_ITEM
 	SD2->(dbGoTop())
 	if !SD2->(msSeek(cFilOri + cDoc + cDocSeri + cCliente + cLoja))
-		self:setResponse(ENCODEUTF8("Documento não encontrado na SD2" + CRLF + ;
+		self:setResponse(ENCODEUTF8("Documento no encontrado en la SD2" + CRLF + ;
 			"Filial: " + cFilOri + CRLF + ;
 			"Doc: " + cDoc + CRLF + ;
 			"Serie: " + cDocSeri + CRLF + ;
@@ -527,8 +527,8 @@ WSMETHOD POST InTraFil WSSERVICE nexSolucoes
 		self:setResponse(ENCODEUTF8(cRet))
 		self:setStatus(406)
 	else
-		cRet := "Gravou Ok" + CRLF + ;
-			"Filial: " + fwXFilial("SF1") + CRLF + ;
+		cRet := "Guardado con éxito." + CRLF + ;
+			"Sucursal: " + fwXFilial("SF1") + CRLF + ;
 			"Doc: " + cDoc + CRLF + ;
 			"Serie: " + cDocSeri
 		self:setResponse(ENCODEUTF8(cRet))

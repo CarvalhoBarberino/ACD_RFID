@@ -20,7 +20,7 @@ Funcao faz apontamento de producao. Eh chamado pelo webservice nexSolucoes
 @param nQuant, 
 @param cSerie, 
 @param cTags,
-@return aRet, array no formato {.T., "gravou Ok"}, indica se gravou apontamento e uma mensagem
+@return aRet, array no formato {.T., "Guardado con éxito."}, indica se gravou apontamento e uma mensagem
 /*/
 user function aptProd(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cSerie, cTags)
 	local aVetor
@@ -48,7 +48,7 @@ user function aptProd(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cS
 		return aRet
 	endIf
 
-	aRet := {.T., "gravou Ok"}
+	aRet := {.T., "Guardado con éxito."}
 return aRet
 
 /*/{Protheus.doc} endereca
@@ -66,7 +66,7 @@ Funcao faz enderecamento lotes recem produzidos. Eh chamado pelo webservice nexS
 @param nQuant, 
 @param cSerie, 
 @param cTags,
-@return aRet, array no formato {.T., "gravou Ok"}, indica se gravou apontamento e uma mensagem
+@return aRet, array no formato {.T., "Guardado con éxito."}, indica se gravou apontamento e uma mensagem
 /*/
 user function endereca(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cSerie, cTags)
 	local oArea				:= fwGetArea()
@@ -139,7 +139,7 @@ user function endereca(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, c
 	endIf
 
 	aRet[1] := .T.
-	aRet[2] := "gravou Ok" // posicione("SDB", 1, cFilia + padR(cCodProd, tamSx3("DB_PRODUTO")[1], " ") + cArmazem + cNumseq + cOp, "DB_LOCALIZ") // DB_FILIAL + DB_PRODUTO + DB_LOCAL + DB_NUMSEQ + DB_DOC
+	aRet[2] := "Guardado con éxito." // posicione("SDB", 1, cFilia + padR(cCodProd, tamSx3("DB_PRODUTO")[1], " ") + cArmazem + cNumseq + cOp, "DB_LOCALIZ") // DB_FILIAL + DB_PRODUTO + DB_LOCAL + DB_NUMSEQ + DB_DOC
 	fwRestArea(oArea)
 return aRet
 
@@ -350,22 +350,22 @@ user function opToSegel()
 	dbSelectArea("SB1")
 	SB1->(dbSetOrder(1)) // B1_FILIAL + B1_COD
 	if !SB1->(msSeek(fwXFilial("SB1") + cCodProd))
-		msgAlert("Produto " + cCodProd + " não cadastrado na filial " + fwXFilial("SB1") + ".", NOME_FONTE)
+		fwAlertError("Producto " + cCodProd + " no registrado en la sucursal " + fwXFilial("SB1") + ".", NOME_FONTE)
 		return
 	endIf
 
 	if "PA" != SB1->B1_TIPO
-		msgAlert("Não é permitido enviar OP para SEGEL quando o produto não for do tipo PA.", NOME_FONTE)
+		fwAlertError("No está permitido enviar la OP a SEGEL cuando el producto no sea del tipo PA.", NOME_FONTE)
 		return
 	endIf
 
 	if "S" == SC2->C2_ZOPENV
-		msgAlert("OP já foi enviada para a SEGEL", NOME_FONTE)
+		fwAlertError("Esta OP ya ha sido enviada a la SEGEL.", NOME_FONTE)
 		return
 	endIf
 
-	if !msgYesNo("Confirma envio da OP " + cOp + "?" + CRLF + "Produto: " + cCodProd + CRLF + "Descrição: " + allTrim(SB1->B1_DESC) + CRLF + "Quantidade: " + cValToChar(SC2->C2_QUANT) + " " + SC2->C2_UM, NOME_FONTE)
-		msgAlert("Abortado pelo operador", NOME_FONTE)
+	if !fwAlertYesNo("¿Confirma el envío de la OP " + cOp + "?" + CRLF + "Producto: " + cCodProd + CRLF + "Descripción: " + allTrim(SB1->B1_DESC) + CRLF + "Cantidad: " + cValToChar(SC2->C2_QUANT) + " " + SC2->C2_UM, NOME_FONTE)
+		fwAlertWarning("Abortado por el operador.", NOME_FONTE)
 		return
 	endIf
 
@@ -410,12 +410,12 @@ user function opToSegel()
 		recLock("SC9", .F.)
 		SC2->C2_ZOPENV := "S"
 		msUnLock()
+		fwAlertSuccess("Enviado con éxito", NOME_FONTE)
 	else
 		cRet += "ERRO" + CRLF + oRestClient:getLastError() + CRLF + oRestClient:getResult()
-	endIf
-	#IFDEF MONITORAR
+		fwAlertError("La petición retornó un error.", NOME_FONTE)
 		showLog(cRet)
-	#ENDIF
+	endIf
 
 	fwRestArea(oArea)
 return
@@ -471,7 +471,7 @@ user function C9DrivIn()
 	local oObjeto1
 
 	if !Pergunte("C9DRIVEIN ", .T.)
-		msgAlert("As perguntas não foram carregadas corretamente", NOME_FONTE)
+		fwAlertError("Las preguntas no se cargaron correctamente.", NOME_FONTE)
 		return
 	endIf
 
@@ -583,7 +583,7 @@ user function C9DrivIn()
 	oObjeto1:setARotina({;
 		{"Enviar p/ DriveIn",	'U_goDrvIn("' + cAliasTemp + '")',			2,		0}, ;
 		{"Inspecionar erro",	'U_inspGoDrvI("' + cAliasTemp + '")',		2,		0}})
-	oObjeto1:jukPlay("Liberações a enviar para DrivIn")
+	oObjeto1:jukPlay("Liberaciones por enviar al DrivIn")
 return
 
 /*/{Protheus.doc} inspGoDrvI
@@ -599,7 +599,7 @@ user function inspGoDrvI(cAliasTemp)
 	dbSelectArea("SC9")
 	SC9->(dbSetOrder(1))
 	if !SC9->(msSeek(fwXFilial('SC9') + (cAliasTemp)->C9_PEDIDO + (cAliasTemp)->C9_ITEM + (cAliasTemp)->C9_SEQUEN + (cAliasTemp)->C9_PRODUTO + "  " + "  ")) // C9_FILIAL + C9_PEDIDO + C9_ITEM + C9_SEQUEN + C9_PRODUTO + C9_BLEST + C9_BLCRED
-		msgAlert("Erro de posicionamento na tabela SC9", NOME_FONTE)
+		fwAlertError("Error de posicionamiento en la tabla SC9.", NOME_FONTE)
 		return
 	endIf
 
@@ -726,7 +726,7 @@ user function goDrvIn(cAliasTemp)
 	aAdd(aDtEntrJson, {dDtentrega, oDtEntrega})
 
 	if len(aDtEntrJson) < 2
-		msgAlert("Não há envios", NOME_FONTE)
+		fwAlertError("No hay envíos.", NOME_FONTE)
 		return
 	endIf
 
@@ -740,7 +740,7 @@ user function goDrvIn(cAliasTemp)
 		endIf
 		cTokenDt := escolheTk(aTokensDt)
 		nAux := aScan(aTokensDt, {|x| cTokenDt == x['token']})
-		if iif(!empty(cTokenDt), msgYesNo("Confirma o envio do POST?" + CRLF + "Data: " + dToC(aDtEntrJson[nI, 1]) + " Token: " + cTokenDt, NOME_FONTE), .F.) // juk ver se é possível colocar o nome do token
+		if iif(!empty(cTokenDt), fwAlertYesNo("¿Confirma el envío del POST para el siguiente escenario?" + CRLF + "Nombre del plan: " + aTokensDt[nAux]['description'] + CRLF + "Fecha: " + dToC(aDtEntrJson[nI, 1]) + " Token: " + cTokenDt, NOME_FONTE), .F.)
 			aPostRet := postPedido(cTokenDt, aDtEntrJson[nI, 2])
 			(cAliasTemp)->(dbGoTop())
 			while !(cAliasTemp)->(eOF())
@@ -752,7 +752,7 @@ user function goDrvIn(cAliasTemp)
 				dbSelectArea("SC9")
 				SC9->(dbSetOrder(1))
 				if !SC9->(msSeek(fwXFilial('SC9') + (cAliasTemp)->C9_PEDIDO + (cAliasTemp)->C9_ITEM + (cAliasTemp)->C9_SEQUEN + (cAliasTemp)->C9_PRODUTO + "  " + "  ")) // C9_FILIAL + C9_PEDIDO + C9_ITEM + C9_SEQUEN + C9_PRODUTO + C9_BLEST + C9_BLCRED
-					msgAlert("Erro na atualização de dados após POST", NOME_FONTE)
+					fwAlertError("Error al actualizar los datos luego de realizar un POST", NOME_FONTE)
 					(cAliasTemp)->(dbSkip())
 					loop
 				endIf
@@ -789,7 +789,7 @@ user function goDrvIn(cAliasTemp)
 				(cAliasTemp)->(dbSkip())
 			endDo
 		else
-			msgAlert("Cancelado o envio do POST" + CRLF + "Data: " + dToC(aDtEntrJson[nI, 1]) + " Token: " + cTokenDt, NOME_FONTE)
+			fwAlertWarning("El envío del POST fue cancelado" + CRLF + "Nombre del plan: " + aTokensDt[nAux]['description'] + CRLF + "Fecha: " + dToC(aDtEntrJson[nI, 1]) + " Token: " + cTokenDt, NOME_FONTE)
 		endIf
 	next nI
 	oMarkBrowse:refresh(.F.)
@@ -948,18 +948,18 @@ static function getTokenDt(dDtentrega)
 		cRet := oRestClient:getResult()
 	else
 		cRet := oRestClient:getLastError()
-		msgAlert("Houve erro no retorno do GET " + cPath + CRLF + cRet, NOME_FONTE)
+		fwAlertError("Ocurrió un error en la respuesta de la request GET." + cPath + CRLF + cRet, NOME_FONTE)
 		return ""
 	endIf
 
 	cErro := oJResposta:FromJSON(cRet)
 	if !empty(cErro)
-		msgAlert("Houve erro no retorno do GET " + cPath + CRLF + cErro, NOME_FONTE)
+		fwAlertError("Ocurrió un error al procesar el JSON " + cPath + CRLF + cErro, NOME_FONTE)
 		return ""
 	endIf
 
 	if len(oJResposta['response']) == 0
-		msgAlert("Não há cenários para a data de entrega" + dToC(dDtentrega), NOME_FONTE)
+		fwAlertError("No existen escenarios para la fecha de entrega. " + dToC(dDtentrega), NOME_FONTE)
 		return ""
 	endIf
 return oJResposta['response']
@@ -989,10 +989,10 @@ static function postPedido(cToken, oDtEntrega)
 
 	if oRestClient:post(aHeader)
 		cRet := oRestClient:getResult()
-		msgAlert(cRet, NOME_FONTE)
+		fwAlertWarning(cRet, NOME_FONTE)
 	else
 		cRet := oRestClient:getLastError()
-		msgAlert("ERRO no POST: " + CRLF + cRet + CRLF + oRestClient:getResult(), NOME_FONTE)
+		fwAlertError("Ocurrió un error en la respuesta de la request POST." + CRLF + cRet + CRLF + oRestClient:getResult(), NOME_FONTE)
 		return {.f., oRestClient:getResult(), cRet}
 	endIf
 return {.t., cRet}
@@ -1049,14 +1049,14 @@ user function rotaDrvDt()
 	private oJsonReceb	:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
 
 	if !ParamBox({{1,		"Data de entrega",			date(),		"",		"",		"",		".T.",		100,		.F.}} /*aPerguntas configuradas*/, "Escolha uma data de entrega" /*Titulo*/, @aResp /*Vetor passado por referencia para retorno das respostas*/, /*bOk Code block para validar o botão Ok*/, /*aButtons Vetor com mais botões além dos botões de Ok e Cancel*/, /*lCentered Centralizar a janela*/, /*nPosX*/, /*nPosY*/, /*oPanel Caso quera adicionar a tela de perguntas a um painel já existente*/, /*cLoad Nome do perfil se caso for carregar*/, .T. /*lCanSave Salvar os dados informados nos parâmetros por perfil*/, .T. /*lUserSave Configuração por usuário*/)
-		msgAlert("Falha ao carregar data de entrega.", NOME_FONTE)
+		fwAlertError("Error al cargar la fecha de entrega.", NOME_FONTE)
 		return
 	endIf
 
 	dDtentrega := aResp[1]
 	aTokensDt := getTokenDt(dDtentrega)
 	if valType(aTokensDt) != "A" .or. len(aTokensDt) == 0
-		msgAlert("Não há cenários para a data de entrega" + dToC(dDtentrega), NOME_FONTE)
+		fwAlertError("No hay escenarios para la fecha de entrega: " + dToC(dDtentrega), NOME_FONTE)
 		return ""
 	endIf
 	cTokenDt := escolheTk(aTokensDt)
@@ -1068,19 +1068,10 @@ user function rotaDrvDt()
 		#ENDIF
 		oJsonReceb:fromJson(oRestClient:getResult())
 	else
-		msgAlert("Houve erro no retorno do GET de cargas " + cPath + CRLF + oRestClient:getLastError(), NOME_FONTE)
+		fwAlertError("Ocurrió un error en la respuesta de la request GET (cargas) " + cPath + CRLF + oRestClient:getLastError(), NOME_FONTE)
 		showLog(oRestClient:getResult())
 		return
 	endIf
-	/*
-		cJsonRaw := '{"status":"OK","success":true,"response":[{"vehicle":null,"description":null,"code":"001","scenario_description":"08.10-1","deploy_date":"2026-08-10","scenario_token":"5f3f186a-4577-458a-8b5b-aa4d753afcea","fleet_sequence":1,"skills":[],"driver":null,"peoneta":null,"summary":{"total_trips":1,"total_orders":1,"total_addresses":1,"total_distance":0.0,"total_time":40.0},"trips":[{"summary":{"trip_number":1,"total_orders":1,"total_addresses":1,"total_distance":0.0,"total_time":40.0,"code":null,"original_total_distance":0,"original_total_time_human":"00:40"},"driver":null,"peoneta":null,"work_shift_name":null,"approved_at":null,"started_at":null,"ended_at":null,"received_orders_size":0,"available_capacity":null,"available_time":null,"remaining_clearance":null,"results":[{"eta":"07:00","eta_started":null,"eta_mode":0,"deposit":true,"position":0,"real_distance":0.0,"planned_distance":null,"start_distance":null,"stop":{"code":null,"name":"MATRIZ CDD","client":null,"address_type":null,"address":"Sueñolar Ypacarai","reference":null,"city":"Ypacaraí","country":"Paraguay","lat":-25.3967453,"lng":-57.2789019,"service_time":null,"priority":null,"skills":null,"time_windows":null},"orders":[]},{"eta":"07:10","eta_started":null,"eta_mode":0,"deposit":false,"position":1,"real_distance":0.0,"planned_distance":0.0,"start_distance":null,"stop":{"code":"000004","name":"CALOTEIROS SMART CLUB                             ","client":"CALOTEIROS SMART CLUB                             ","address_type":null,"address":"RUA PASSA AMANHA QUE VEM, 45            ","reference":null,"city":"EMBUDAS        ","country":"AFEGANISTAO              ","lat":-23.442503,"lng":-58.443832,"service_time":20,"priority":2,"skills":[],"time_windows":[{"start":"07:00","end":"16:00"}]},"orde'
-		cJsonRaw += 'rs":[{"idx":1,"code":"000026","units_1":1.0,"units_2":3.4,"units_3":0.0,"alt_code":null,"custom_1":null,"custom_2":null,"custom_3":null,"custom_4":null,"custom_5":null,"custom_6":null,"custom_7":null,"custom_8":null,"custom_9":null,"custom_10":null,"custom_11":null,"number_1":null,"number_2":null,"number_3":null,"number_4":null,"delivery_date":null,"supplier_code":null,"supplier_name":null,"client_code":null,"client_name":"CALOTEIROS SMART CLUB                             ","contact_name":null,"contact_phone":null,"contact_email":null,"sales_zone_code":null,"sales_zone_name":null,"items":[{"code":"01-01-000007         ","description":"SUPER KOALA SUPERIOR PREMIUM                      ","units":1.0,"units_1":null,"units_2":3.1,"units_3":null,"units_4":0,"requested_units":0.0,"custom_1":null,"custom_2":null,"custom_3":null,"custom_4":null,"custom_5":null,"custom_6":null,"custom_7":null,"custom_8":null,"custom_10":null,"custom_11":null,"custom_12":null,"custom_13":null,"custom_14":null,"custom_15":null,"custom_16":null,"custom_17":null,"custom_18":null,"custom_19":null,"custom_20":null,"number_1":null,"number_2":null,"number_3":null,"number_4":null,"number_5":null,"number_6":null,"number_7":null,"number_8":null,"number_9":null,"number_10":null,"item_contents":[]},{"code":"01-02-000007         ","description":"SUPER KOALA SUPERIOR PREMIUM                      ","units":1.0,"units_1":null,"units_2":3.1,"units_3":null,"units_4":0,"requested_units":0.0,"custom_1":null,"custom_2":null,"custom_3":null,"custom_4":null,"custom_5":null,"custom_6":null,"custom_7":null,"custom_8":null,"custom_10":null,"custom_11":null,"custom_12":null,"custom_13":null,"custom_14":null,"custom_15":null,"custom_16":null,"custom_17":null,"custom_18":null,"custom_19":null,"custom_20":null,"n'
-		cJsonRaw += 'umber_1":null,"number_2":null,"number_3":null,"number_4":null,"number_5":null,"number_6":null,"number_7":null,"number_8":null,"number_9":null,"number_10":null,"item_contents":[]},{"code":"02-01-000008         ","description":"BOX KOALA TOP PLUS VISCO                          ","units":1.0,"units_1":null,"units_2":3.4,"units_3":null,"units_4":0,"requested_units":0.0,"custom_1":null,"custom_2":null,"custom_3":null,"custom_4":null,"custom_5":null,"custom_6":null,"custom_7":null,"custom_8":null,"custom_10":null,"custom_11":null,"custom_12":null,"custom_13":null,"custom_14":null,"custom_15":null,"custom_16":null,"custom_17":null,"custom_18":null,"custom_19":null,"custom_20":null,"number_1":null,"number_2":null,"number_3":null,"number_4":null,"number_5":null,"number_6":null,"number_7":null,"number_8":null,"number_9":null,"number_10":null,"item_contents":[]}]}]},{"eta":"07:40","eta_started":null,"eta_mode":0,"deposit":true,"position":2,"real_distance":0.0,"planned_distance":0.0,"start_distance":null,"stop":{"code":null,"name":"MATRIZ CDD","client":null,"address_type":null,"address":"Sueñolar Ypacarai","reference":null,"city":"Ypacaraí","country":"Paraguay","lat":-25.3967453,"lng":-57.2789019,"service_time":null,"priority":null,"skills":null,"time_windows":null},"orders":[]}],"kpis":{"orders_pending":1,"orders_approved":0,"orders_partial":0,"orders_rejected":0,"return_eta":"07:40"}}]},{"vehicle":null,"description":null,"code":"002","scenario_description":"08.10-1","deploy_date":"2026-08-10","scenario_token":"5f3f186a-4577-458a-8b5b-aa4d753afcea","fleet_sequence":2,"skills":[],"driver":null,"peoneta":null,"summary":{"total_trips":1,"total_orders":1,"total_addresses":1,"total_distance":0.0,"total_time":40.0},"trips":[{"summary":{"trip_number":1,"total_orders":1,"total_addresses":1,"total_distance":0.0,"total_time":40.0,"co'
-		cJsonRaw += 'de":null,"original_total_distance":0,"original_total_time_human":"00:40"},"driver":null,"peoneta":null,"work_shift_name":null,"approved_at":null,"started_at":null,"ended_at":null,"received_orders_size":0,"available_capacity":null,"available_time":null,"remaining_clearance":null,"results":[{"eta":"07:00","eta_started":null,"eta_mode":0,"deposit":true,"position":0,"real_distance":0.0,"planned_distance":null,"start_distance":null,"stop":{"code":null,"name":"MATRIZ CDD","client":null,"address_type":null,"address":"Sueñolar Ypacarai","reference":null,"city":"Ypacaraí","country":"Paraguay","lat":-25.3967453,"lng":-57.2789019,"service_time":null,"priority":null,"skills":null,"time_windows":null},"orders":[]},{"eta":"07:10","eta_started":null,"eta_mode":0,"deposit":false,"position":1,"real_distance":0.0,"planned_distance":0.0,"start_distance":null,"stop":{"code":"000006","name":"INTERPLANETARIOS LIDER                            ","client":"INTERPLANETARIOS LIDER                            ","address_type":null,"address":"AVENIDA FAROL IRLANDES, 181             ","reference":null,"city":"BARUEBAS       ","country":"ALEMANHA                 ","lat":-23.442503,"lng":-58.443832,"service_time":20,"priority":2,"skills":[],"time_windows":[{"start":"07:00","end":"16:00"}]},"orders":[{"idx":1,"code":"000028","units_1":1.0,"units_2":3.1,"units_3":0.0,"alt_code":null,"custom_1":null,"custom_2":null,"custom_3":null,"custom_4":null,"custom_5":null,"custom_6":null,"custom_7":null,"custom_8":null,"custom_9":null,"custom_10":null,"custom_11":null,"number_1":null,"number_2":null,"number_3":null,"number_4":null,"delivery_date":null,"supp'
-		cJsonRaw += 'lier_code":null,"supplier_name":null,"client_code":null,"client_name":"INTERPLANETARIOS LIDER                            ","contact_name":null,"contact_phone":null,"contact_email":null,"sales_zone_code":null,"sales_zone_name":null,"items":[{"code":"01-01-000007         ","description":"SUPER KOALA SUPERIOR PREMIUM                      ","units":1.0,"units_1":null,"units_2":3.1,"units_3":null,"units_4":0,"requested_units":0.0,"custom_1":null,"custom_2":null,"custom_3":null,"custom_4":null,"custom_5":null,"custom_6":null,"custom_7":null,"custom_8":null,"custom_10":null,"custom_11":null,"custom_12":null,"custom_13":null,"custom_14":null,"custom_15":null,"custom_16":null,"custom_17":null,"custom_18":null,"custom_19":null,"custom_20":null,"number_1":null,"number_2":null,"number_3":null,"number_4":null,"number_5":null,"number_6":null,"number_7":null,"number_8":null,"number_9":null,"number_10":null,"item_contents":[]},{"code":"01-02-000007         ","description":"SUPER KOALA SUPERIOR PREMIUM                      ","units":1.0,"units_1":null,"units_2":3.1,"units_3":null,"units_4":0,"requested_units":0.0,"custom_1":null,"custom_2":null,"custom_3":null,"custom_4":null,"custom_5":null,"custom_6":null,"custom_7":null,"custom_8":null,"custom_10":null,"custom_11":null,"custom_12":null,"custom_13":null,"custom_14":null,"custom_15":null,"custom_16":null,"custom_17":null,"custom_18":null,"custom_19":null,"custom_20":null,"number_1":null,"number_2":null,"number_3":null,"number_4":null,"number_5":null,"number_6":null,"number_7":null,"number_8":null,"number_9":null,"number_10":null,"item_contents":[]}]}]},{"eta":"07:40","eta_starte'
-		cJsonRaw += 'd":null,"eta_mode":0,"deposit":true,"position":2,"real_distance":0.0,"planned_distance":0.0,"start_distance":null,"stop":{"code":null,"name":"MATRIZ CDD","client":null,"address_type":null,"address":"Sueñolar Ypacarai","reference":null,"city":"Ypacaraí","country":"Paraguay","lat":-25.3967453,"lng":-57.2789019,"service_time":null,"priority":null,"skills":null,"time_windows":null},"orders":[]}],"kpis":{"orders_pending":1,"orders_approved":0,"orders_partial":0,"orders_rejected":0,"return_eta":"07:40"}}]}]}'
-		oJsonReceb:fromJson(cJsonRaw)
-	*/
 
 	oRotasTab := FWTemporaryTable():new(cAliasRota, aCamposRed)
 	oRotasTab:AddIndex("01", {cCampoIdx})
@@ -1137,7 +1128,7 @@ user function rotaDrvDt()
 	cAliasTemp := oMarkBr:getAliasTemp()
 	oMarkBr:setARotina({;
 		{"Importar p/ OMS",	'U_DrvToOMS("' + cAliasTemp + '")',			2,		0}})
-	oMarkBr:jukPlay("Rotas para uma data")
+	oMarkBr:jukPlay("Ruteo para una fecha")
 	#IFDEF MONITORAR
 		showLog(VarInfo("oArea", oArea, /*espaçamento deve ser adicionado a cada -tab-*/, .F. /*HTML (.T.) ou TXT (.F.)*/))
 	#ENDIF
@@ -1225,17 +1216,17 @@ user function DrvToOMS(cAliasTemp)
 										cProd := padR(cProd /*xExp*/, tamSX3("C9_PRODUTO")[1] /*nLen*/, " "/*cFill*/)
 
 										if !SC9->(msSeek(fwXFilial('SC9') + cPedido + cItem + cSeq + cProd + "  " + "  ")) // C9_FILIAL + C9_PEDIDO + C9_ITEM + C9_SEQUEN + C9_PRODUTO + C9_BLEST + C9_BLCRED
-											msgAlert("SC9 não encontrado.", NOME_FONTE)
+											fwAlertWarning("SC9 no encontrado." + CRLF + "Orden: " + cPedido + CRLF + "Artículo: " + cItem + CRLF + "Secuencia: " + cSeq + CRLF + "Código de producto: " + cProd, NOME_FONTE)
 											loop
 										endIf
 
 										if !SA1->(msSeek(fwXFilial('SA1') + SC9->C9_CLIENTE + SC9->C9_LOJA)) // A1_FILIAL + A1_COD + A1_LOJA
-											msgAlert("SA1 não encontrado.", NOME_FONTE)
+											fwAlertWarning("SA1 no encontrado." + CRLF + "Cliente: " + SC9->C9_CLIENTE + CRLF + "Tienda: " + SC9->C9_LOJA, NOME_FONTE)
 											loop
 										endIf
 
 										if !SC5->(msSeek(fwXFilial('SC5') + cPedido)) // C5_FILIAL + C5_NUM
-											msgAlert("SC5 não encontrado.", NOME_FONTE)
+											fwAlertWarning("SC5 no encontrado." + CRLF + "Orden: " + cPedido, NOME_FONTE)
 											loop
 										endIf
 										if cPedidoAux != cPedido // impede dois aItem para o mesmo pedido
@@ -1292,12 +1283,12 @@ user function DrvToOMS(cAliasTemp)
 		lMsErroAuto	:= .F. //Variavel que informa a ocorrência de erros no ExecAuto
 		MSExecAuto({|x, y, z| OMSA200(x, y, z)}, aCab, aItem, 3)
 		If lMsErroAuto
-			Alert("Erro no ExecAuto do OMSA200")
+			fwAlertError("Error en el ExecAuto OMSA200", NOME_FONTE)
 			cMsgErro := MostraErro()
 			DisarmTransaction()
-			Alert(cMsgErro)
+			fwAlertError(cMsgErro, NOME_FONTE)
 		Else
-			Alert("Sucesso na execução do ExecAuto OMSA200") // juk substtuir alert() por https://terminaldeinformacao.com/2021/04/28/utilizando-fwalert-para-exibir-mensagens-no-protheus/
+			fwAlertSuccess("Éxito en la ejecución del ExecAuto OMSA200", NOME_FONTE)
 		EndIf
 
 		(cAliasTemp)->(dbSkip())
@@ -1420,7 +1411,7 @@ Este Ponto de Entrada é executado após a geração da carga e antes da atualização
 @version 0
 /*/
 user function OM200FIM()
-	if FWIsInCallStack("U_rotaDrvDt")
+	if fwIsInCallStack("U_rotaDrvDt")
 		#IFDEF MONITORAR
 			if (DAK->DAK_ZDRVRT == (cAliasTemp)->ROTA) .or. (DAK->DAK_ZCENAR == cTokenDt) .or. (DAK->DAK_ZCENDE == (cAliasTemp)->CENDESC)
 				msgAlert("Já existem valores gravados nos campos customizados, talvez o PE OM200FIM seja desnecessário", 	NOME_FONTE)
@@ -1555,7 +1546,7 @@ user function docToSeg(cFilOri, cDoc, cSerieFat) // 1.2.2.2.4.2
 }
 */
 	if (cAliasZB0)->(eOF())
-		msgAlert("Não ha dados para enviar para Segel", NOME_FONTE)
+		fwAlertError("No existen datos para enviar a Segel.", NOME_FONTE)
 		fwRestArea(oArea)
 		return
 	endIf
@@ -1570,7 +1561,7 @@ user function docToSeg(cFilOri, cDoc, cSerieFat) // 1.2.2.2.4.2
 		oJsonItem['lote'] := (cAliasZB0)->CB9_LOTECT
 		oJsonItem['numserie'] := (cAliasZB0)->CB9_NUMSER
 		oJsonItem['qtd'] := (cAliasZB0)->CB9_QTESEP
-		oJsonItem['tags'] := {(cAliasZB0)->CB9_ZB0COD} // juk tem que fazer um laço para colocar codeti dentro desse array
+		oJsonItem['tags'] := {(cAliasZB0)->CB9_ZB0COD} // juk Talvez precisa fazer um laço para colocar codeti dentro desse array
 		aAdd(aItens, oJsonItem)
 		(cAliasZB0)->(dbSkip())
 	endDo
@@ -1627,7 +1618,7 @@ user function toSegelEn()
 	local oArea				:= fwGetArea()
 	local aHeader			:= {}
 	local cUrl				:= superGetMV("SU_URLSEGE", .T., "http://192.168.0.3:8000")
-	local cPath				:= superGetMV("SU_FATURIN", .T., "/api/faturas_inbound") // juk qual parametro é o certo SU_FATURIN ou SU_FATINSE
+	local cPath				:= superGetMV("SU_FATINSE", .T., "/api/faturas_inbound")
 	local oRestClient		:= FWRest():New(cUrl) // https://tdn.totvs.com/display/public/framework/FWRest
 	local oJson0			:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
 	local oJson1			:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
@@ -1638,7 +1629,7 @@ user function toSegelEn()
 	private lMsErroAuto
 
 	if SDA->DA_SALDO <= 0
-		msgAlert("Não há saldo " + SDA->DA_SALDO + " a endereçar.", NOME_FONTE)
+		fwAlertError("No hay saldo por ubicar.", NOME_FONTE)
 		fwRestArea(oArea)
 		return
 	endIf
@@ -1646,7 +1637,7 @@ user function toSegelEn()
 	dbSelectArea("SB1")
 	SB1->(dbSetOrder(1)) // B1_FILIAL + B1_COD
 	if !SB1->(msSeek(iif(empty(fwXFilial("SB1")), fwXFilial("SB1"), SDA->DA_FILIAL) + SDA->DA_PRODUTO))
-		msgAlert("Produto " + allTrim(SDA->DA_PRODUTO) + " não cadastrado na filial " + fwXFilial("SB1") + ".", NOME_FONTE)
+		fwAlertError("El producto " + allTrim(SDA->DA_PRODUTO) + " no está registrado en la sucursal " + fwXFilial("SB1") + ".", NOME_FONTE)
 		fwRestArea(oArea)
 		return
 	endIf
@@ -1691,7 +1682,7 @@ user function toSegelEn()
 		cErro := oJson1:fromJson(cRet)
 	else
 		cRet := "ERRO" + CRLF + oRestClient:getLastError() + CRLF + "RESULTADO: " + CRLF + oRestClient:getResult()
-		msgAlert(cRet, NOME_FONTE)
+		fwAlertError(cRet, NOME_FONTE)
 		fwRestArea(oArea)
 		return
 	endIf
@@ -1752,7 +1743,7 @@ user function toSegelEn()
 		fwRestArea(oArea)
 		return
 	endIf
-	msgAlert("Gravou ok", NOME_FONTE)
+	fwAlertSuccess("Guardado con éxito.", NOME_FONTE)
 	fwRestArea(oArea)
 return
 
@@ -1764,5 +1755,5 @@ PE para colocar botão no menu da rotina Endereçamento de produtos https://tdn.to
 @version 0
 /*/
 user function MTA265MNU()//.customização do cliente
-	aAdd(aRotina,{ "Enviar p SEGEL", "U_toSegelEn()", 0 , 2, 0, .F.})
+	aAdd(aRotina,{"Enviar a SEGEL", "U_toSegelEn()", 0 , 2, 0, .F.})
 Return

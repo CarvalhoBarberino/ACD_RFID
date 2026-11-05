@@ -298,13 +298,13 @@ method jukPlay(cTitulo) class jukMarkBrowse
 	oMarkBrowse:SetFontBrowse(oFontGrid)
 	oMarkBrowse:SetOwner(oPanGrid)
 
-	if cTitulo == "Liberações a enviar para DrivIn"
+	if cTitulo == "Liberaciones por enviar al DrivIn"
 		oMarkBrowse:AddLegend("C9_DATENT<date()", "BLUE", "Entrega atrasada")
 		oMarkBrowse:AddLegend("date()<=C9_DATENT.and.COMUNIC==1", "GREEN", "Apto a enviar")
 		oMarkBrowse:AddLegend("COMUNIC==2", "YELLOW", "Enviado")
 		oMarkBrowse:AddLegend("date()<=C9_DATENT.and.COMUNIC==4", "RED", "Enviado com erro")
 		oMarkBrowse:SetValid({|| date() <= C9_DATENT .and. (COMUNIC == 1 .or. COMUNIC==4)})
-	elseIf cTitulo == "Rotas para uma data"
+	elseIf cTitulo == "Ruteo para una fecha"
 		oMarkBrowse:AddLegend("allTrim(DAK_COD)==''", "GREEN", "Apto a gravar no OMS")
 		oMarkBrowse:AddLegend("allTrim(DAK_COD)!=''", "RED", "Já existe Carga gravada no OMS")
 		oMarkBrowse:SetValid({|| allTrim(DAK_COD)==''})

@@ -8,7 +8,7 @@
 */
 User Function LOCXPE11()
 	Local	cDespacho	:=	''//F1_HAWB
-	Local	lRet		:=	.T.
+	//Local	lRet		:=	.T.
 	Local	cProv		:=	''
 	Local	cLoja		:=	''
 	Local	cFact		:=	''
