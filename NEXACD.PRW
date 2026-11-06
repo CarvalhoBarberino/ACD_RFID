@@ -2,7 +2,6 @@
 #INCLUDE "RWMAKE.CH"
 #DEFINE NOME_FONTE		"NEXACD.PRW"
 #DEFINE ORACLE
-
 #DEFINE MONITORAR
 
 /*/{Protheus.doc} aptProd
@@ -227,6 +226,8 @@ user function MTA265I()
 			{"ZB0_LOTE",		SDB->DB_LOTECTL}, ;
 			{"ZB0_SLOTE",		SDB->DB_NUMLOTE}, ;
 			{"ZB0_OP",			/*left(SDB->DB_OP, 11)*/ left(SDB->DB_DOC, 11)}, ;
+			{"ZB0_NFENT",		SDB->DB_DOC}, ;
+			{"ZB0_SERIEE",		SDB->DB_SERIE}, ;
 			{"ZB0_NUMSEQ",		SDB->DB_NUMSEQ}, ;
 			{"ZB0_NUMSER",		SDB->DB_NUMSERI} ;
 			}
@@ -989,7 +990,11 @@ static function postPedido(cToken, oDtEntrega)
 
 	if oRestClient:post(aHeader)
 		cRet := oRestClient:getResult()
-		fwAlertWarning(cRet, NOME_FONTE)
+		#IFDEF MONITORAR
+			fwAlertSuccess("Pedidos enviados con éxito." + CRLF + cRet, NOME_FONTE)
+		#ELSE
+			fwAlertSuccess("Pedidos enviados con éxito.", NOME_FONTE)
+		#ENDIF
 	else
 		cRet := oRestClient:getLastError()
 		fwAlertError("Ocurrió un error en la respuesta de la request POST." + CRLF + cRet + CRLF + oRestClient:getResult(), NOME_FONTE)
@@ -1453,9 +1458,9 @@ user function docToSeg(cFilOri, cDoc, cSerieFat) // 1.2.2.2.4.2
 	local oJsonfat		:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
 	local cJsonOut
 	local cUrl			:= superGetMV("SU_URLSEGE", .T., "http://192.168.0.3:8000")
-	local cPath			:= superGetMV("SU_FATUOUT", .T., "/faturas_outbound")
+	local cPath			:= superGetMV("SU_FATOUSE", .T., "/api/faturas_outbound")
 	local oRestClient	:= FWRest():New(cUrl) // https://tdn.totvs.com/display/public/framework/FWRest
-	local cRet
+	local cRet			:= ""
 
 	cQy += "SELECT " + CRLF
 	cQy += "	F2.F2_DOC, " + CRLF
@@ -1586,8 +1591,10 @@ user function docToSeg(cFilOri, cDoc, cSerieFat) // 1.2.2.2.4.2
 
 	if oRestClient:post(aHeader)
 		cRet += oRestClient:getResult()
+		fwAlertSuccess("Documento de salida enviado con éxito." + CRLF + "Sucursal: " + cFilOri + CRLF + "Documeto: " + cDoc + CRLF + "Serie: " + cSerieFat, NOME_FONTE)
 	else
 		cRet += "ERRO" + CRLF + oRestClient:getLastError() + CRLF + oRestClient:getResult()
+		fwAlertError("Error al enviar el documento de salida." + CRLF + "Sucursal: " + cFilOri + CRLF + "Documeto: " + cDoc + CRLF + "Serie: " + cSerieFat, NOME_FONTE)
 	endIf
 	#IFDEF MONITORAR
 		showLog(cRet)

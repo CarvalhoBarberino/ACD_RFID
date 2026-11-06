@@ -507,7 +507,7 @@ WSMETHOD POST InTraFil WSSERVICE nexSolucoes
 				aAdd(aItem,{"D1_NFORI",			SD2->D2_DOC,							Nil})
 				aAdd(aItem,{"D1_SERIORI",		SD2->D2_SERIE,							Nil})
 				aAdd(aItem,{"D1_ITEMORI",		SD2->D2_ITEM,							Nil})
-				aAdd(aItem,{"D1_CUSTO",			SD2->D2_CUSTO1,							Nil})
+				aAdd(aItem,{"D1_CUSTO",			SD2->D2_CUSTO1,							Nil}) // juk verificar. Por que o D1_custo não foi carregado?
 				aAdd(aItem,{"D1_CUSTO2",		SD2->D2_CUSTO2,							Nil})
 				aAdd(aItem,{"D1_LOTECTL",		SD2->D2_LOTECTL,						Nil})
 				aAdd(aItem,{"D1_DTVALID",		SD2->D2_DTVALID,						Nil})
