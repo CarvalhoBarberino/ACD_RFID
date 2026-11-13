@@ -110,7 +110,9 @@ WSMETHOD POST saida_produto WSSERVICE nexSolucoes // 1.2.2.2.4.2
 	local cErroJson		:= oJsonIn:fromJson(cConteudo) // Variavel que indica se houve erro na interpretacao do json
 	//local oJsonOut		:= jsonObject():new() // Json de resposta
 	local nFat, cFatura, cFatSerie, cCliente, cLoja, cProduto, cItem, cTag, nItem
-	local cRet			:= "Etiquetas grabadas en la tabla SD2:" + CRLF
+	local cRet			:= ""
+	local cFilSD2		:= fwXFilial("SD2")
+	local lMTZWF		:= .F. // moreThenZeroWasFound
 
 /* Exemplo de json que espera receber
 {
@@ -156,17 +158,27 @@ WSMETHOD POST saida_produto WSSERVICE nexSolucoes // 1.2.2.2.4.2
 			cItem := padR(oJsonIn['facturas'][nFat]['itens'][nItem]['item'], tamSX3("D2_ITEM")[1])
 			cTag := oJsonIn['facturas'][nFat]['itens'][nItem]['tag']
 			SD2->(dbGoTop())
-			if SD2->(msSeek(fwXFilial("SD2") + cFatura + cFatSerie + cCliente + cLoja + cProduto + cItem))
+			if SD2->(msSeek(cFilSD2 + cFatura + cFatSerie + cCliente + cLoja + cProduto + cItem))
+				lMTZWF := .T.
 				recLock("SD2", .F.)
 				SD2->D2_ZB0COD := cTag
 				SD2->(msUnLock())
-				cRet += cTag + CRLF
+				cRet += CRLF + "Etiqueta grabada: " + cTag + "    Clave encontrada: " + cFilSD2 + cFatura + cFatSerie + cCliente + cLoja + cProduto + cItem
+			else
+				cRet += CRLF + "Error. Etiqueta no grabada: " + cTag + "    Clave no encontrada: " + cFilSD2 + cFatura + cFatSerie + cCliente + cLoja + cProduto + cItem
 			endIf
 		next nItem
 	next nFat
 
-	self:setResponse(ENCODEUTF8(cRet))
-	self:setStatus(201)
+	if lMTZWF
+		cRet := "Grabación en la tabla SD2" + CRLF + CRLF + cRet
+		self:setResponse(ENCODEUTF8(cRet))
+		self:setStatus(201)
+	else
+		cRet := "No se encontró ninguno de los registros en la tabla SD2" + CRLF + CRLF + cRet
+		self:setResponse(ENCODEUTF8(cRet))
+		self:setStatus(404)
+	endIf
 return .T.
 
 /*/{Protheus.doc} OutTraFil

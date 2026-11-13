@@ -7,76 +7,6 @@
 Classe para adaptar alias a um markBrowse
 @author Julio Carvalho
 @since 06/05/2026
-@example
-	//Exemplo de uso
-
-	//Antes de usar a classe jukMarkBrowse, deve existir um Alias com os
-	//dados que serão mostrados no markBrowse e portanto já deve conter
-	//o campo de indice (neste exemplo REC) e também deve conter o campo
-	//seletor (neste exemplo SEL_OK). O alias pode ser criado por uma
-	//query. Eu não sei como você ira criar o Alias mas precisa existir
-	//um campo como indice e um campo como seletor.
-
-	local cAliasTemp
-	local aRotina
-	//Exemplo de array com estrutura dos campos de um Alias.
-	local aEstrutura := {;
-		{"CB7_FILIAL",		"Filial",			"C",		2,			0,			""},;
-		{"CB7_ORDSEP",		"Ord Sep",			"C",		6,			0,			""},;
-		{"CB7_PEDIDO",		"Pedido",			"C",		6,			0,			""},;
-		{"CB7_CLIENT",		"Cliente",			"C",		6,			0,			""},;
-		{"CB7_LOJA",		"Loja",				"C",		2,			0,			""},;
-		{"CB7_STATUS",		"Status",			"C",		1,			0,			""},;
-		{"CB7_ORIGEM",		"Origem",			"C",		1,			0,			""},;
-		{"CB8_ITEM",		"Item",				"C",		2,			0,			""},;
-		{"CB8_PROD",		"Produto",			"C",		15,			0,			""},;
-		{"B1_DESC",			"Descrição",		"C",		50,			0,			""},;
-		{"B1_UM",			"Unidade",			"C",		2,			0,			""},;
-		{"CB8_LOCAL",		"Local",			"C",		2,			0,			""},;
-		{"CB8_LOTECT",		"Lote",				"C",		10,			0,			""},;
-		{"CB8_NUMLOT",		"subLote",			"C",		6,			0,			""},;
-		{"CB8_LCALIZ",		"Endereço",			"C",		15,			0,			""},;
-		{"CB8_NUMSER",		"Num Serie",		"C",		20,			0,			""},;
-		{"CB8_QTDORI",		"Qtd. Original",	"N",		12,			2,			""},;
-		{"CB8_SALDOS",		"Saldo",			"N",		12,			2,			""},;
-		{"CB7_DTEMIS",		"Emissão",			"D",		8,			0,			""},;
-		{"REC",				"Rec",				"N",		14,			0,			""},;
-		{"SEL_OK",			"Sel",				"C",		2,			0,			""}}
-	//	 Campo				Título				Típo		Tamanho		Decimais	Mascara
-	
-	//Define qual campo será utilizado como indice
-	local cCampoIdx		:= "REC"
-	
-	//Define qual campo será utilizado como seletor do markBrowse
-	local cCampoSel		:= "SEL_OK"
-
-	//Cria o objeto que adapta para o markBrowse
-	oObjeto1 := jukMarkBrowse():New(aEstrutura, cAliasQry, cCampoIdx, cCampoSel)
-
-	//Define variavel que irá guardar o alias temporário
-	cAliasTemp := oObjeto1:getAliasTemp()
-
-	//Define o array aRotina
-	aRotina := {;
-	{"Agrupar",				'U_agruparOS("' + cAliasTemp + '")',		2,			0},;
-	{'Incluir',				'VIEWDEF.MVC01',							3,			0},;
-	{'Alterar',				'VIEWDEF.MVC01',							4,			0},;
-	{'Excluir',				'VIEWDEF.MVC01',							5,			0},;
-	{'Imprimir',			'VIEWDEF.MVC01',							8,			0},;
-	{'Copiar',				'VIEWDEF.MVC01',							9,			0},;
-	{'SubMenu',				;
-	{;
-	{'Funcao 1 subMenu',	'Alert("Sub menu funcao 1")',				4,			0},;
-	{'Funcao 2 subMenu',	'Alert("Sub menu funcao 2")',				4,			0};
-	},																	9,			0};
-	}
-	//Titulo				funcao										operacao	acesso
-
-	//passa o array aRotina para dentro do objeto que ira adaptar o markBrowse
-	//oObjeto1:setARotina(aRotina)
- 
-	//Executa o markBrowse
-	oObjeto1:jukPlay()
 /*/
 
 class jukMarkBrowse
@@ -299,14 +229,15 @@ method jukPlay(cTitulo) class jukMarkBrowse
 	oMarkBrowse:SetOwner(oPanGrid)
 
 	if cTitulo == "Liberaciones por enviar al DrivIn"
-		oMarkBrowse:AddLegend("C9_DATENT<date()", "BLUE", "Entrega atrasada")
-		oMarkBrowse:AddLegend("date()<=C9_DATENT.and.COMUNIC==1", "GREEN", "Apto a enviar")
+		oMarkBrowse:AddLegend("COMUNIC==3", "GRAY", "Ya existe una orden de separaci�n o una carga")
+		oMarkBrowse:AddLegend("C9_DATENT<date()", "BLUE", "Entrega retrasada")
+		oMarkBrowse:AddLegend("date()<=C9_DATENT.and.COMUNIC==1", "GREEN", "Listo para enviar")
 		oMarkBrowse:AddLegend("COMUNIC==2", "YELLOW", "Enviado")
-		oMarkBrowse:AddLegend("date()<=C9_DATENT.and.COMUNIC==4", "RED", "Enviado com erro")
+		oMarkBrowse:AddLegend("date()<=C9_DATENT.and.COMUNIC==4", "RED", "Enviado con error")
 		oMarkBrowse:SetValid({|| date() <= C9_DATENT .and. (COMUNIC == 1 .or. COMUNIC==4)})
 	elseIf cTitulo == "Ruteo para una fecha"
-		oMarkBrowse:AddLegend("allTrim(DAK_COD)==''", "GREEN", "Apto a gravar no OMS")
-		oMarkBrowse:AddLegend("allTrim(DAK_COD)!=''", "RED", "J� existe Carga gravada no OMS")
+		oMarkBrowse:AddLegend("allTrim(DAK_COD)==''", "GREEN", "Apto para grabar en el OMS")
+		oMarkBrowse:AddLegend("allTrim(DAK_COD)!=''", "RED", "Ya existe una carga registrada en el OMS.")
 		oMarkBrowse:SetValid({|| allTrim(DAK_COD)==''})
 	endIf
 

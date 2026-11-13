@@ -3,6 +3,7 @@
 #DEFINE NOME_FONTE		"NEXACD.PRW"
 #DEFINE ORACLE
 #DEFINE MONITORAR
+#DEFINE MONISEGEL
 
 /*/{Protheus.doc} aptProd
 Funcao faz apontamento de producao. Eh chamado pelo webservice nexSolucoes
@@ -23,7 +24,7 @@ Funcao faz apontamento de producao. Eh chamado pelo webservice nexSolucoes
 /*/
 user function aptProd(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cSerie, cTags)
 	local aVetor
-	local aRet				:= {.F., "Erro: O apontamento de produção não terminou"}
+	local aRet				:= {.F., "Error: El registro de producción no ha finalizado"}
 	local nOpc				:= 3
 
 	aVetor := {;
@@ -69,7 +70,7 @@ Funcao faz enderecamento lotes recem produzidos. Eh chamado pelo webservice nexS
 /*/
 user function endereca(cFilia, cOp, cCodProd, cDescr, cArmazem, cLote, nQuant, cSerie, cTags)
 	local oArea				:= fwGetArea()
-	local aRet				:= {.F., "Erro: O endereçamento não terminou"}
+	local aRet				:= {.F., "Error: El direccionamiento no ha terminado"}
 	local cQy				:= ""
 	local cAliasD3			:= getNextAlias()
 	local cNumseq
@@ -326,7 +327,7 @@ user function MTA650MNU()
 	[5]Nivel de acesso
 	[6]Habilita Menu Funcional
 	*/
-	aAdd(aRotina, {'Envia Op p/ SEGEL', 'U_opToSegel()', 0, 4 })
+	aAdd(aRotina, {'Envía Op a SEGEL', 'U_opToSegel()', 0, 4 })
 return
 
 /*/{Protheus.doc} opToSegel
@@ -412,6 +413,9 @@ user function opToSegel()
 		SC2->C2_ZOPENV := "S"
 		msUnLock()
 		fwAlertSuccess("Enviado con éxito", NOME_FONTE)
+		#IFDEF MONISEGEL
+			showLog(cRet)
+		#ENDIF
 	else
 		cRet += "ERRO" + CRLF + oRestClient:getLastError() + CRLF + oRestClient:getResult()
 		fwAlertError("La petición retornó un error.", NOME_FONTE)
@@ -510,9 +514,9 @@ user function C9DrivIn()
 	cQy += "	C9_QTDLIB, " + CRLF
 	cQy += "	C9_QTDLIB * B1_M3 AS VOLUME, " + CRLF
 	cQy += "	CASE " + CRLF
+	cQy += "		WHEN C9_ORDSEP <> '' OR C9_CARGA <> '' THEN 3 " + CRLF
 	cQy += "		WHEN C9_ZCENARI = '' AND C9_ZDRIVIN IS NULL THEN 1 " + CRLF
-	cQy += "		WHEN C9_ZCENARI <> '' AND C9_ZDRIVIN IS NULL THEN 2 " + CRLF
-	cQy += "		WHEN C9_ZCENARI <> '' AND C9_ZDRIVIN IS NOT NULL THEN 2 " + CRLF
+	cQy += "		WHEN C9_ZCENARI <> '' THEN 2 " + CRLF
 	cQy += "		WHEN C9_ZCENARI = '' AND C9_ZDRIVIN IS NOT NULL THEN 4 " + CRLF
 	cQy += "	END AS COMUNIC, " + CRLF
 	#IFDEF ORACLE
@@ -582,8 +586,8 @@ user function C9DrivIn()
 	oObjeto1 := jukMarkBrowse():New(aEstrutura, cAliasC9, cCampoIdx, cCampoSel)
 	cAliasTemp := oObjeto1:getAliasTemp()
 	oObjeto1:setARotina({;
-		{"Enviar p/ DriveIn",	'U_goDrvIn("' + cAliasTemp + '")',			2,		0}, ;
-		{"Inspecionar erro",	'U_inspGoDrvI("' + cAliasTemp + '")',		2,		0}})
+		{"Enviar a DriveIn",	'U_goDrvIn("' + cAliasTemp + '")',			2,		0}, ;
+		{"Inspeccionar error",	'U_inspGoDrvI("' + cAliasTemp + '")',		2,		0}})
 	oObjeto1:jukPlay("Liberaciones por enviar al DrivIn")
 return
 
@@ -824,7 +828,7 @@ static function escolheTk(aTokensDt)
 		20/*nLeft*/, ;
 		500/*nBottom*/, ;
 		500/*nRight*/,;
-		"Escolha um cenário para as entregas do dia " + cDia /*cTitle*/, ;
+		"Elige un escenario para las entregas del día " + cDia /*cTitle*/, ;
 		/*cResName*/, ;
 		/*hResources*/, ;
 		/*.vbx.*/, ;
@@ -844,7 +848,7 @@ static function escolheTk(aTokensDt)
 		300 /*nWidth*/,;
 		100 /*nHeight*/,;
 		/*bLine*/,;
-		{"Selecione", "Plan", "Schema", "Token"} /*aHeaders*/,;
+		{"Seleccione", "Plan", "Schema", "Token"} /*aHeaders*/,;
 		/*aColSizes*/,;
 		oDlg /*oDlg*/,;
 		/*cField*/,;
@@ -1053,7 +1057,7 @@ user function rotaDrvDt()
 	private cTokenDt, cAliasTemp
 	private oJsonReceb	:= JsonObject():New() // https://tdn.totvs.com/display/tec/Classe+JsonObject
 
-	if !ParamBox({{1,		"Data de entrega",			date(),		"",		"",		"",		".T.",		100,		.F.}} /*aPerguntas configuradas*/, "Escolha uma data de entrega" /*Titulo*/, @aResp /*Vetor passado por referencia para retorno das respostas*/, /*bOk Code block para validar o botão Ok*/, /*aButtons Vetor com mais botões além dos botões de Ok e Cancel*/, /*lCentered Centralizar a janela*/, /*nPosX*/, /*nPosY*/, /*oPanel Caso quera adicionar a tela de perguntas a um painel já existente*/, /*cLoad Nome do perfil se caso for carregar*/, .T. /*lCanSave Salvar os dados informados nos parâmetros por perfil*/, .T. /*lUserSave Configuração por usuário*/)
+	if !ParamBox({{1,		"Data de entrega",			date(),		"",		"",		"",		".T.",		100,		.F.}} /*aPerguntas configuradas*/, "Elige una fecha de entrega" /*Titulo*/, @aResp /*Vetor passado por referencia para retorno das respostas*/, /*bOk Code block para validar o botão Ok*/, /*aButtons Vetor com mais botões além dos botões de Ok e Cancel*/, /*lCentered Centralizar a janela*/, /*nPosX*/, /*nPosY*/, /*oPanel Caso quera adicionar a tela de perguntas a um painel já existente*/, /*cLoad Nome do perfil se caso for carregar*/, .T. /*lCanSave Salvar os dados informados nos parâmetros por perfil*/, .T. /*lUserSave Configuração por usuário*/)
 		fwAlertError("Error al cargar la fecha de entrega.", NOME_FONTE)
 		return
 	endIf
@@ -1405,7 +1409,7 @@ Ponto de entrada para inclusão de botão no menu "Outras ações" da rotina OMSA200
 @version 0
 /*/
 user function OM200MNU()
-	aadd(aRotina,{'Buscar cargas no DrivIn','U_rotaDrvDt()' , 0 , 3,0,NIL})
+	aadd(aRotina,{'Buscar cargas en DrivIn','U_rotaDrvDt()' , 0 , 3,0,NIL})
 return
 
 /*/{Protheus.doc} OM200FIM
